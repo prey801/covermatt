@@ -1,0 +1,120 @@
+[
+  {
+    "id": "ORD-001",
+    "customer": {
+      "name": "James Mwangi",
+      "email": "james@example.com",
+      "phone": "+254712345678"
+    },
+    "items": [
+      {
+        "productId": "1",
+        "name": "Professional 20V Cordless Drill Kit",
+        "qty": 1,
+        "price": 8499
+      },
+      {
+        "productId": "3",
+        "name": "Heavy Duty Extension Cord 10m",
+        "qty": 2,
+        "price": 1299
+      }
+    ],
+    "total": 11097,
+    "status": "pending",
+    "createdAt": "2026-03-01T10:23:00Z",
+    "address": "Westlands, Nairobi"
+  },
+  {
+    "id": "ORD-002",
+    "customer": {
+      "name": "Fatuma Omar",
+      "email": "fatuma@example.com",
+      "phone": "+254723456789"
+    },
+    "items": [
+      {
+        "productId": "13",
+        "name": "Deep Fryer Single Tank 6L",
+        "qty": 1,
+        "price": 4999
+      }
+    ],
+    "total": 4999,
+    "status": "shipped",
+    "createdAt": "2026-03-05T14:10:00Z",
+    "address": "South C, Nairobi"
+  },
+  {
+    "id": "ORD-003",
+    "customer": {
+      "name": "Peter Kiprotich",
+      "email": "peter@example.com",
+      "phone": "+254734567890"
+    },
+    "items": [
+      {
+        "productId": "17",
+        "name": "Non-Stick Sufuria Set 5-Piece",
+        "qty": 1,
+        "price": 3499
+      },
+      {
+        "productId": "15",
+        "name": "Electric Kettle 1.7L Stainless Steel",
+        "qty": 1,
+        "price": 2499
+      }
+    ],
+    "total": 5998,
+    "status": "pending",
+    "createdAt": "2026-03-07T09:45:00Z",
+    "address": "Thika Road, Nairobi"
+  },
+  {
+    "id": "ORD-004",
+    "customer": {
+      "name": "Grace Wanjiku",
+      "email": "grace@example.com",
+      "phone": "+254745678901"
+    },
+    "items": [
+      {
+        "productId": "9",
+        "name": "Circular Saw 185mm 1400W",
+        "qty": 1,
+        "price": 11999
+      }
+    ],
+    "total": 11999,
+    "status": "pending",
+    "createdAt": "2026-03-09T08:30:00Z",
+    "address": "Karen, Nairobi"
+  },
+  {
+    "id": "ORD-005",
+    "customer": {
+      "name": "Ali Hassan",
+      "email": "ali@example.com",
+      "phone": "+254756789012"
+    },
+    "items": [
+      {
+        "productId": "16",
+        "name": "Gas Cooker 3-Burner Table Top",
+        "qty": 1,
+        "price": 5999
+      },
+      {
+        "productId": "19",
+        "name": "Vacuum Flask 1L Stainless Steel",
+        "qty": 2,
+        "price": 1299
+      }
+    ],
+    "total": 8597,
+    "status": "pending",
+    "createdAt": "2026-03-09T19:15:00Z",
+    "address": "Mombasa Road, Nairobi"
+  }
+]

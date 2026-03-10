@@ -1,23 +1,31 @@
 import { NextResponse } from 'next/server';
-import { readData } from '@/lib/dataStore';
-import { Product } from '@/app/api/products/route';
-import { Order } from '@/app/api/orders/route';
+import connectToDatabase from '@/lib/mongodb';
+import Product from '@/models/Product';
+import Order from '@/models/Order';
 
 export async function GET() {
-    const products = readData<Product>('products.json');
-    const orders = readData<Order>('orders.json');
+    try {
+        await connectToDatabase();
+        const products = await Product.find({}).lean();
+        const orders = await Order.find({}).sort({ createdAt: -1 }).lean();
 
-    const totalRevenue = orders
-        .filter(o => o.status !== 'cancelled')
-        .reduce((sum, o) => sum + o.total, 0);
+        const formattedProducts = products.map((p: any) => ({ ...p, id: p._id.toString(), _id: undefined }));
+        const formattedOrders = orders.map((o: any) => ({ ...o, id: o._id.toString(), _id: undefined }));
 
-    const lowStockCount = products.filter(p => p.stockLevel === 'low-stock' || p.stockLevel === 'out-of-stock').length;
+        const totalRevenue = formattedOrders
+            .filter(o => o.status !== 'cancelled')
+            .reduce((sum, o) => sum + o.total, 0);
 
-    return NextResponse.json({
-        totalRevenue,
-        totalOrders: orders.length,
-        totalProducts: products.length,
-        lowStockCount,
-        recentOrders: orders.slice(-5).reverse(),
-    });
+        const lowStockCount = formattedProducts.filter(p => p.stockLevel === 'low-stock' || p.stockLevel === 'out-of-stock').length;
+
+        return NextResponse.json({
+            totalRevenue,
+            totalOrders: formattedOrders.length,
+            totalProducts: formattedProducts.length,
+            lowStockCount,
+            recentOrders: formattedOrders.slice(0, 5),
+        });
+    } catch (e) {
+        return NextResponse.json({ error: 'Failed to fetch dashboard stats' }, { status: 500 });
+    }
 }

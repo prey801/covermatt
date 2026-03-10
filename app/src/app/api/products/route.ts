@@ -1,63 +1,66 @@
 import { NextResponse } from 'next/server';
-import { readData, writeData } from '@/lib/dataStore';
+import connectToDatabase from '@/lib/mongodb';
+import Product from '@/models/Product';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
 
-export interface Product {
-    id: string;
-    name: string;
-    brand?: string;
-    category: string;
-    price: number;
-    originalPrice?: number;
-    discount?: number;
-    rating?: number;
-    reviews?: number;
-    image?: string;
-    badge?: string;
-    inStock: boolean;
-    stockLevel: 'in-stock' | 'low-stock' | 'out-of-stock';
-    features?: string[];
-    isNew?: boolean;
-    flashSale?: boolean;
-}
-
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search')?.toLowerCase();
-    const category = searchParams.get('category')?.toLowerCase();
+    try {
+        const { searchParams } = new URL(request.url);
+        const search = searchParams.get('search')?.toLowerCase();
+        const category = searchParams.get('category')?.toLowerCase();
 
-    let products = readData<Product>('products.json');
+        await connectToDatabase();
+        
+        let query: any = {};
 
-    if (search) {
-        products = products.filter(p =>
-            p.name.toLowerCase().includes(search) ||
-            (p.brand?.toLowerCase().includes(search)) ||
-            p.category.toLowerCase().includes(search)
-        );
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { category: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        if (category && category !== 'all') {
+            query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+        }
+
+        const products = await Product.find(query).sort({ createdAt: -1 });
+
+        // Map _id to id for frontend compatibility
+        const mappedProducts = products.map(p => ({
+            ...p.toObject(),
+            id: p._id.toString()
+        }));
+
+        return NextResponse.json(mappedProducts);
+    } catch (error: any) {
+        console.error('Failed to fetch products:', error);
+        return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
     }
-    if (category && category !== 'all') {
-        products = products.filter(p => p.category.toLowerCase() === category);
-    }
-
-    return NextResponse.json(products);
 }
 
 export async function POST(request: Request) {
-    const authed = await isAdminAuthenticated();
-    if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+        const authed = await isAdminAuthenticated();
+        if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await request.json();
-    const products = readData<Product>('products.json');
+        const body = await request.json();
+        
+        await connectToDatabase();
+        
+        const newProduct = await Product.create({
+            ...body,
+            rating: body.rating ?? 5.0,
+            reviews: body.reviews ?? 0,
+        });
 
-    const newProduct: Product = {
-        ...body,
-        id: String(Date.now()),
-        rating: body.rating ?? 0,
-        reviews: body.reviews ?? 0,
-    };
-
-    products.push(newProduct);
-    writeData('products.json', products);
-
-    return NextResponse.json(newProduct, { status: 201 });
+        return NextResponse.json({
+            ...newProduct.toObject(),
+            id: newProduct._id.toString()
+        }, { status: 201 });
+        
+    } catch (error: any) {
+        console.error('Failed to create product:', error);
+        return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+    }
 }

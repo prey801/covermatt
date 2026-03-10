@@ -1,10 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
     User, ShoppingBag, Heart, MapPin, CreditCard, Bell,
     ChevronRight, LogOut, Package, Star, Settings, Edit3, ArrowLeft,
-    CheckCircle, Truck, Clock, Home
+    CheckCircle, Truck, Clock, Home, AlertTriangle, Send
 } from 'lucide-react';
 
 const TRACKING_STEPS = [
@@ -23,28 +24,73 @@ const TABS = [
 ];
 
 export default function AccountPage() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('overview');
     
+    // User State
+    const [user, setUser] = useState<any>(null);
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
+
     // Orders State
     const [orders, setOrders] = useState<any[]>([]);
     const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
     const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
-    React.useEffect(() => {
-        const fetchOrders = async () => {
+    useEffect(() => {
+        const fetchProfileData = async () => {
             try {
-                const res = await fetch('/api/orders');
-                const data = await res.json();
-                setOrders(data);
+                // 1. Fetch Auth Profile
+                const profileRes = await fetch('/api/user/profile');
+                if (!profileRes.ok) {
+                    if (profileRes.status === 401) {
+                        router.push('/login');
+                        return;
+                    }
+                    throw new Error('Failed to fetch profile');
+                }
+                const profileData = await profileRes.json();
+                setUser(profileData.user);
+
+                // 2. Fetch User Orders
+                const ordersRes = await fetch('/api/orders');
+                const ordersData = await ordersRes.json();
+                setOrders(ordersData);
+                
             } catch (error) {
-                console.error("Failed to fetch orders:", error);
+                console.error("Failed to fetch account data:", error);
             } finally {
+                setIsLoadingUser(false);
                 setIsLoadingOrders(false);
             }
         };
-        fetchOrders();
-    }, []);
+        fetchProfileData();
+    }, [router]);
     
+    // Verification Handlers
+    const [resendStatus, setResendStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [resendMessage, setResendMessage] = useState('');
+
+    const handleResendVerification = async (type: 'email' | 'phone') => {
+        setResendStatus('loading');
+        setResendMessage('');
+        try {
+            const endpoint = type === 'email' ? '/api/auth/verify/send-email' : '/api/auth/verify/send-otp';
+            const res = await fetch(endpoint, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                setResendStatus('success');
+                setResendMessage(type === 'email' ? 'Verification link sent to your email.' : 'OTP sent to your phone.');
+            } else {
+                setResendStatus('error');
+                setResendMessage(data.error || 'Failed to send verification.');
+            }
+        } catch (e) {
+            setResendStatus('error');
+            setResendMessage('An unexpected error occurred.');
+        }
+        setTimeout(() => setResendStatus('idle'), 5000);
+    };
+
     // Address State
     const [editingId, setEditingId] = useState<number | null>(null);
     const [isAddingNew, setIsAddingNew] = useState(false);
@@ -93,17 +139,17 @@ export default function AccountPage() {
             <div className="hero-gradient py-10 sm:py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl sm:text-4xl border border-white/10">
-                            👤
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl sm:text-4xl border border-white/10 uppercase">
+                            {user?.name?.[0] || 'U'}
                         </div>
                         <div className="text-white">
-                            <h1 className="text-xl sm:text-2xl font-extrabold font-heading">John Doe</h1>
-                            <p className="text-white/60 text-sm mt-0.5">john.doe@example.com • +254 700 XXX XXX</p>
+                            <h1 className="text-xl sm:text-2xl font-extrabold font-heading">{user?.name || 'Loading...'}</h1>
+                            <p className="text-white/60 text-sm mt-0.5">{user?.email} {user?.phone && `• ${user.phone}`}</p>
                             <div className="flex items-center gap-3 mt-2">
-                                <span className="bg-emerald-400/20 text-emerald-200 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                                    <Star className="w-3 h-3" /> Premium Member
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${user?.role === 'admin' ? 'bg-indigo-400/20 text-indigo-200' : 'bg-emerald-400/20 text-emerald-200'}`}>
+                                    <Star className="w-3 h-3" /> {user?.role === 'admin' ? 'Administrator' : 'Premium Member'}
                                 </span>
-                                <span className="text-white/40 text-xs">Joined Feb 2024</span>
+                                {user?.createdAt && <span className="text-white/40 text-xs">Joined {new Date(user.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</span>}
                             </div>
                         </div>
                     </div>
@@ -126,10 +172,12 @@ export default function AccountPage() {
                                     {tab.label}
                                 </button>
                             ))}
-                            <Link href="/admin" className="flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap shrink-0 lg:w-full text-indigo-500 hover:bg-indigo-50">
-                                <span className="text-indigo-400"><Settings className="w-4 h-4" /></span>
-                                Admin Dashboard
-                            </Link>
+                            {user?.role === 'admin' && (
+                                <Link href="/admin" className="flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all whitespace-nowrap shrink-0 lg:w-full text-indigo-500 hover:bg-indigo-50">
+                                    <span className="text-indigo-400"><Settings className="w-4 h-4" /></span>
+                                    Admin Dashboard
+                                </Link>
+                            )}
                             <div className="hidden lg:block">
                                 <hr className="my-2 border-gray-100" />
                                 <Link href="/login" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all">
@@ -143,10 +191,54 @@ export default function AccountPage() {
                     <div>
                         {activeTab === 'overview' && (
                             <div className="space-y-5">
+                                {/* Verification Banners */}
+                                {user && !user.isEmailVerified && (
+                                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <h3 className="font-bold text-amber-900">Verify your email address</h3>
+                                                <p className="text-sm text-amber-700 mt-0.5">Please verify your email to secure your account and receive order updates.</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleResendVerification('email')} 
+                                            disabled={resendStatus === 'loading'}
+                                            className="whitespace-nowrap px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {resendStatus === 'loading' ? 'Sending...' : <><Send className="w-4 h-4" /> Resend Email</>}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {user && !user.isPhoneVerified && (
+                                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
+                                            <div>
+                                                <h3 className="font-bold text-orange-900">Verify your phone number</h3>
+                                                <p className="text-sm text-orange-700 mt-0.5">Please verify your phone via OTP to enable Delivery SMS tracking.</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => router.push('/register')} 
+                                            className="whitespace-nowrap px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
+                                        >
+                                            Verify Phone
+                                        </button>
+                                    </div>
+                                )}
+
+                                {resendStatus !== 'idle' && resendStatus !== 'loading' && (
+                                    <div className={`p-4 rounded-xl text-sm font-medium border ${resendStatus === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                        {resendMessage}
+                                    </div>
+                                )}
+
                                 {/* Quick Stats */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                     {[
-                                        { label: 'Total Orders', value: '12', icon: <Package className="w-5 h-5 text-emerald-500" /> },
+                                        { label: 'Total Orders', value: orders.length.toString(), icon: <Package className="w-5 h-5 text-emerald-500" /> },
                                         { label: 'Wishlist Items', value: '8', icon: <Heart className="w-5 h-5 text-red-500" /> },
                                         { label: 'Reward Points', value: '2,450', icon: <Star className="w-5 h-5 text-amber-500" /> },
                                         { label: 'Saved Addresses', value: '3', icon: <MapPin className="w-5 h-5 text-blue-500" /> },
@@ -202,10 +294,9 @@ export default function AccountPage() {
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                                         {[
-                                            { label: 'Full Name', value: addresses[0]?.name || 'N/A' },
-                                            { label: 'Email', value: 'john.doe@example.com' },
-                                            { label: 'Phone', value: addresses[0]?.phone || 'N/A' },
-                                            { label: 'Location', value: `${addresses[0]?.city || ''}, Kenya` },
+                                            { label: 'Full Name', value: user?.name || 'N/A' },
+                                            { label: 'Email', value: user?.email || 'N/A' },
+                                            { label: 'Phone', value: user?.phone || 'N/A' },
                                         ].map(f => (
                                             <div key={f.label}>
                                                 <p className="text-xs text-gray-400 font-medium mb-0.5">{f.label}</p>

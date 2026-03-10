@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { signToken } from '@/lib/jwt';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/models/User';
+import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
@@ -11,20 +14,39 @@ export async function POST(request: Request) {
             email === process.env.ADMIN_EMAIL && 
             password === process.env.ADMIN_PASSWORD;
 
-        if (!isValidAdmin) {
-            return NextResponse.json(
-                { error: 'Invalid credentials' },
-                { status: 401 }
-            );
+        if (isValidAdmin) {
+            const token = await signToken({ email, role: 'admin' });
+            const cookieStore = await cookies();
+            cookieStore.set('auth_token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 60 * 60 * 24 // 24 hours
+            });
+            return NextResponse.json({ success: true, redirect: '/admin' });
         }
 
-        // Generate the JWT
-        const token = await signToken({ 
-            email, 
-            role: 'admin' 
-        });
+        // --- 2. Customer DB Login Fallback ---
+        await connectToDatabase();
+        
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+        }
 
-        // Set the HTTP-Only cookie to secure the session
+        // Compare hashed password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+        }
+
+        const token = await signToken({ 
+            userId: user._id.toString(), 
+            email: user.email, 
+            role: user.role 
+        });
+            
         const cookieStore = await cookies();
         cookieStore.set('auth_token', token, {
             httpOnly: true,
@@ -34,9 +56,10 @@ export async function POST(request: Request) {
             maxAge: 60 * 60 * 24 // 24 hours
         });
 
-        return NextResponse.json({ success: true, redirect: '/admin' });
+        return NextResponse.json({ success: true, redirect: '/account' });
 
     } catch (error: any) {
+        console.error('Login Error:', error);
         return NextResponse.json(
             { error: 'An error occurred during login' },
             { status: 500 }

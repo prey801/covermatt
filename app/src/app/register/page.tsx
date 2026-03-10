@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, CheckCircle, X as XIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShoppingBag, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, CheckCircle, X as XIcon, Loader2 } from 'lucide-react';
 
 const PASSWORD_CRITERIA = [
     { key: 'length', label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
@@ -21,8 +22,22 @@ const STRENGTH_CONFIG = [
 ];
 
 export default function RegisterPage() {
+    const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
+    
+    // Form State
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    
+    // Status State
+    const [step, setStep] = useState<'register' | 'otp'>('register');
+    const [otp, setOtp] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
 
     const { score, passed } = useMemo(() => {
         const results = PASSWORD_CRITERIA.map(c => c.test(password));
@@ -30,6 +45,96 @@ export default function RegisterPage() {
     }, [password]);
 
     const strength = STRENGTH_CONFIG[password.length === 0 ? 0 : score];
+
+    const handleRegister = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (score < 3) {
+            setError('Please choose a stronger password.');
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `${firstName} ${lastName}`.trim(),
+                    email,
+                    phone,
+                    password
+                }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                // Auto-trigger Verification emails and SMS
+                try {
+                    await fetch('/api/auth/verify/send-email', { method: 'POST' });
+                    await fetch('/api/auth/verify/send-otp', { method: 'POST' });
+                } catch (e) {
+                    console.error('Verification trigger failed', e);
+                }
+                setSuccessMsg('Account created! Please check your phone for the verification code.');
+                setStep('otp');
+            } else {
+                setError(data.error || 'Failed to register account');
+            }
+        } catch (err) {
+            setError('An unexpected error occurred. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const res = await fetch('/api/auth/verify/otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp }),
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                router.push('/account');
+                router.refresh();
+            } else {
+                setError(data.error || 'Invalid OTP code');
+            }
+        } catch (err) {
+            setError('Failed to verify OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setIsLoading(true);
+        setError('');
+        setSuccessMsg('');
+        try {
+            const res = await fetch('/api/auth/verify/send-otp', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                setSuccessMsg(data.message || 'A new code has been sent!');
+            } else {
+                setError(data.error || 'Failed to resend code');
+            }
+        } catch (err) {
+            setError('Could not connect to server.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -75,21 +180,41 @@ export default function RegisterPage() {
                         <span className="text-xl font-extrabold text-gray-900 font-heading">Cover<span className="text-emerald-500">matt</span></span>
                     </div>
 
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-heading">Create Account</h2>
-                    <p className="text-sm text-gray-400 mt-1 mb-8">Join 25,000+ happy customers</p>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 font-heading">
+                        {step === 'register' ? 'Create Account' : 'Verify Phone Number'}
+                    </h2>
+                    <p className="text-sm text-gray-400 mt-1 mb-6">
+                        {step === 'register' ? 'Join 25,000+ happy customers' : `We've sent a 6-digit code to ${phone}`}
+                    </p>
 
-                    <form onSubmit={e => e.preventDefault()} className="space-y-4">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
+                            <XIcon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-600 font-medium">{error}</p>
+                        </div>
+                    )}
+
+                    {successMsg && (
+                        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                            <p className="text-sm text-emerald-700 font-medium">{successMsg}</p>
+                        </div>
+                    )}
+
+                    {step === 'register' ? (
+                        <>
+                        <form onSubmit={handleRegister} className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
                                 <div className="relative">
                                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input type="text" placeholder="John" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                                    <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required placeholder="John" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
-                                <input type="text" placeholder="Doe" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required placeholder="Doe" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
                             </div>
                         </div>
 
@@ -97,7 +222,7 @@ export default function RegisterPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
                             <div className="relative">
                                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input type="tel" placeholder="+254 7XX XXX XXX" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+254 7XX XXX XXX" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
                             </div>
                         </div>
 
@@ -105,7 +230,7 @@ export default function RegisterPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
                             <div className="relative">
                                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input type="email" placeholder="john@example.com" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="john@example.com" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all" />
                             </div>
                         </div>
 
@@ -167,8 +292,16 @@ export default function RegisterPage() {
                             </span>
                         </label>
 
-                        <button type="submit" className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-                            Create Account <ArrowRight className="w-4 h-4" />
+                        <button type="submit" disabled={isLoading || score < 3} className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" /> Creating Account...
+                                </>
+                            ) : (
+                                <>
+                                    Create Account <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
                         </button>
                     </form>
 
@@ -190,6 +323,38 @@ export default function RegisterPage() {
                     <p className="text-center text-sm text-gray-500">
                         Already have an account? <Link href="/login" className="text-emerald-600 font-bold hover:underline">Sign in</Link>
                     </p>
+                    </>
+                ) : (
+                    <form onSubmit={handleVerifyOtp} className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5 text-center">Enter 6-digit Code</label>
+                            <input 
+                                type="text" 
+                                maxLength={6}
+                                value={otp} 
+                                onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))} 
+                                required 
+                                placeholder="••••••" 
+                                className="w-full border border-gray-200 rounded-xl px-4 py-4 text-center text-2xl tracking-[0.5em] font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all font-mono" 
+                            />
+                        </div>
+
+                        <button type="submit" disabled={isLoading || otp.length !== 6} className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                            {isLoading ? (
+                                <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                            ) : 'Verify Phone'}
+                        </button>
+
+                        <div className="text-center">
+                            <p className="text-sm text-gray-500">
+                                Didn't receive the code?{' '}
+                                <button type="button" onClick={handleResendOtp} disabled={isLoading} className="text-emerald-600 font-bold hover:underline disabled:opacity-50">
+                                    Resend Code
+                                </button>
+                            </p>
+                        </div>
+                    </form>
+                )}
                 </div>
             </div>
         </div>

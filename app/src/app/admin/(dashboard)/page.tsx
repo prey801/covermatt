@@ -1,6 +1,6 @@
-import { readData } from '@/lib/dataStore';
-import { Product } from '@/app/api/products/route';
-import { Order } from '@/app/api/orders/route';
+import connectToDatabase from '@/lib/mongodb';
+import Product from '@/models/Product';
+import Order from '@/models/Order';
 import { Package, ShoppingCart, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
@@ -12,15 +12,21 @@ const STATUS_STYLES: Record<string, string> = {
     cancelled: 'bg-red-100 text-red-700',
 };
 
-export default function AdminDashboard() {
-    const products = readData<Product>('products.json');
-    const orders = readData<Order>('orders.json');
+export default async function AdminDashboard() {
+    await connectToDatabase();
+    
+    // Fetch directly from DB instead of JSON
+    const rawOrders = await Order.find({}).sort({ createdAt: -1 }).lean();
+    const rawProducts = await Product.find({}).lean();
+
+    const orders = rawOrders.map((o: any) => ({ ...o, id: o._id.toString() }));
+    const products = rawProducts.map((p: any) => ({ ...p, id: p._id.toString() }));
 
     const totalRevenue = orders
         .filter(o => o.status !== 'cancelled')
         .reduce((sum, o) => sum + o.total, 0);
     const lowStock = products.filter(p => p.stockLevel === 'low-stock' || p.stockLevel === 'out-of-stock');
-    const recentOrders = [...orders].reverse().slice(0, 5);
+    const recentOrders = orders.slice(0, 5);
 
     const stats = [
         { label: 'Total Revenue', value: `KSh ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },

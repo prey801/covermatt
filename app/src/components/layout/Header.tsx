@@ -10,14 +10,14 @@ import { useCart } from '@/context/CartContext';
 import MiniCart from '@/components/cart/MiniCart';
 
 const NAV_CATEGORIES = [
-    { icon: <Zap className="w-4 h-4" />, label: 'Power Tools', href: '/' },
-    { icon: <Plug className="w-4 h-4" />, label: 'Electrical', href: '/' },
-    { icon: <Wrench className="w-4 h-4" />, label: 'Plumbing', href: '/' },
-    { icon: <Hammer className="w-4 h-4" />, label: 'Hardware', href: '/' },
-    { icon: <Lightbulb className="w-4 h-4" />, label: 'Lighting', href: '/' },
-    { icon: <TreePine className="w-4 h-4" />, label: 'Garden & Outdoor', href: '/' },
-    { icon: <Paintbrush className="w-4 h-4" />, label: 'Paint & Supplies', href: '/' },
-    { icon: <Shield className="w-4 h-4" />, label: 'Safety Equipment', href: '/' },
+    { icon: <Zap className="w-4 h-4" />, label: 'Power Tools', href: '/category/power-tools' },
+    { icon: <Plug className="w-4 h-4" />, label: 'Electrical', href: '/category/electrical' },
+    { icon: <Wrench className="w-4 h-4" />, label: 'Plumbing', href: '/category/plumbing' },
+    { icon: <Hammer className="w-4 h-4" />, label: 'Hardware', href: '/category/hardware' },
+    { icon: <Lightbulb className="w-4 h-4" />, label: 'Lighting', href: '/category/lighting' },
+    { icon: <TreePine className="w-4 h-4" />, label: 'Garden & Outdoor', href: '/category/garden-outdoor' },
+    { icon: <Paintbrush className="w-4 h-4" />, label: 'Paint & Supplies', href: '/category/paint' },
+    { icon: <Shield className="w-4 h-4" />, label: 'Safety Equipment', href: '/category/safety-equipment' },
 ];
 
 const SEARCH_SUGGESTIONS = [

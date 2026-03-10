@@ -1,5 +1,74 @@
 [
   {
+    "id": "ORD-10075",
+    "customer": {
+      "name": "Guest Customer",
+      "email": "guest@example.com",
+      "phone": ""
+    },
+    "items": [
+      {
+        "productId": "1",
+        "name": "Professional 20V Cordless Drill Kit",
+        "qty": 2,
+        "price": 16998
+      }
+    ],
+    "total": 16998,
+    "status": "pending",
+    "createdAt": "2026-03-10T09:28:27.694Z",
+    "address": "Unknown Address, Nairobi",
+    "paymentMethod": "visa",
+    "paymentStatus": "paid",
+    "transactionId": "pi_3T9MaWRq8xFjuGlk0rJLjLFs"
+  },
+  {
+    "id": "ORD-10909",
+    "customer": {
+      "name": "Guest Customer",
+      "email": "guest@example.com",
+      "phone": ""
+    },
+    "items": [
+      {
+        "productId": "2",
+        "name": "LED Smart Bulb E27 9W (Pack of 6)",
+        "qty": 2,
+        "price": 3798
+      }
+    ],
+    "total": 4098,
+    "status": "delivered",
+    "createdAt": "2026-03-10T08:09:58.326Z",
+    "address": "Unknown Address, Nairobi",
+    "paymentMethod": "visa",
+    "paymentStatus": "paid",
+    "transactionId": "pi_3T9LMdRq8xFjuGlk1lekonum"
+  },
+  {
+    "id": "ORD-49060",
+    "customer": {
+      "name": "Guest Customer",
+      "email": "guest@example.com",
+      "phone": ""
+    },
+    "items": [
+      {
+        "productId": "2",
+        "name": "LED Smart Bulb E27 9W (Pack of 6)",
+        "qty": 1,
+        "price": 1899
+      }
+    ],
+    "total": 2199,
+    "status": "pending",
+    "createdAt": "2026-03-10T07:59:05.411Z",
+    "address": "Unknown Address, Nairobi",
+    "paymentMethod": "delivery",
+    "paymentStatus": "pending",
+    "transactionId": ""
+  },
+  {
     "id": "ORD-001",
     "customer": {
       "name": "James Mwangi",
@@ -23,7 +92,10 @@
     "total": 11097,
     "status": "pending",
     "createdAt": "2026-03-01T10:23:00Z",
-    "address": "Westlands, Nairobi"
+    "address": "Westlands, Nairobi",
+    "paymentMethod": "M-Pesa",
+    "paymentStatus": "paid",
+    "transactionId": "TRX-A157FC43"
   },
   {
     "id": "ORD-002",
@@ -43,7 +115,10 @@
     "total": 4999,
     "status": "shipped",
     "createdAt": "2026-03-05T14:10:00Z",
-    "address": "South C, Nairobi"
+    "address": "South C, Nairobi",
+    "paymentMethod": "M-Pesa",
+    "paymentStatus": "paid",
+    "transactionId": "TRX-AFD6CF22"
   },
   {
     "id": "ORD-003",
@@ -69,7 +144,10 @@
     "total": 5998,
     "status": "pending",
     "createdAt": "2026-03-07T09:45:00Z",
-    "address": "Thika Road, Nairobi"
+    "address": "Thika Road, Nairobi",
+    "paymentMethod": "M-Pesa",
+    "paymentStatus": "paid",
+    "transactionId": "TRX-024E56F8"
   },
   {
     "id": "ORD-004",
@@ -89,7 +167,10 @@
     "total": 11999,
     "status": "pending",
     "createdAt": "2026-03-09T08:30:00Z",
-    "address": "Karen, Nairobi"
+    "address": "Karen, Nairobi",
+    "paymentMethod": "M-Pesa",
+    "paymentStatus": "paid",
+    "transactionId": "TRX-E9E32245"
   },
   {
     "id": "ORD-005",
@@ -115,6 +196,9 @@
     "total": 8597,
     "status": "pending",
     "createdAt": "2026-03-09T19:15:00Z",
-    "address": "Mombasa Road, Nairobi"
+    "address": "Mombasa Road, Nairobi",
+    "paymentMethod": "M-Pesa",
+    "paymentStatus": "paid",
+    "transactionId": "TRX-28512761"
   }
 ]

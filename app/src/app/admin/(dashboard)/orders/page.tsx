@@ -11,6 +11,9 @@ interface Order {
     status: string;
     createdAt: string;
     address: string;
+    paymentMethod?: string;
+    paymentStatus?: string;
+    transactionId?: string;
 }
 
 const STATUSES = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -100,7 +103,7 @@ export default function AdminOrdersPage() {
                                 <th className="text-left px-4 py-3">Customer</th>
                                 <th className="text-left px-4 py-3">Date</th>
                                 <th className="text-left px-4 py-3">Total</th>
-                                <th className="text-left px-4 py-3">Items</th>
+                                <th className="text-left px-4 py-3">Payment</th>
                                 <th className="text-left px-4 py-3">Location</th>
                                 <th className="text-left px-6 py-3">Status</th>
                             </tr>
@@ -123,8 +126,16 @@ export default function AdminOrdersPage() {
                                     <td className="px-4 py-4 font-semibold text-gray-800">
                                         KSh {order.total.toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-4 text-gray-500">
-                                        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                                    <td className="px-4 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-semibold text-gray-800 capitalize">{order.paymentMethod || 'Unknown'}</span>
+                                            {order.transactionId && <span className="text-xs text-gray-500 font-mono mt-0.5">{order.transactionId}</span>}
+                                            {order.paymentStatus === 'paid' ? (
+                                                <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-600 mt-1">Paid</span>
+                                            ) : (
+                                                <span className="text-[10px] uppercase tracking-wider font-bold text-amber-600 mt-1">Pending</span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-4 text-gray-600">
                                         <span className="text-sm">{order.address}</span>

@@ -5,19 +5,19 @@ import { ArrowRight, Sparkles, Star } from 'lucide-react';
 
 const CATEGORIES = [
     // New categories
-    { id: 1,  name: 'Deep Fryers',              count: '20+',  emoji: '🍟', gradient: 'from-orange-400 to-red-500',    href: '#', description: 'Single Tank (6L), Double Tank (12L), Fryer Combo Bundles',              badge: 'Popular'   },
-    { id: 2,  name: 'Electric Kettles',          count: '15+',  emoji: '☕', gradient: 'from-amber-400 to-yellow-500',  href: '#', description: 'Standard Kettles, Kettle Combo Bundles'                                                  },
-    { id: 3,  name: 'Cooking Appliances',        count: '30+',  emoji: '🍳', gradient: 'from-emerald-500 to-teal-600', href: '#', description: 'Gas Cookers/Burners, Electric Cookers, Egg Boilers & Steamers'                          },
-    { id: 4,  name: 'Cookware & Kitchen Tools',  count: '50+',  emoji: '🥘', gradient: 'from-rose-500 to-pink-600',    href: '#', description: 'Pots & Sufuria Sets, Frying Pans & Woks, Utensil Sets, Food Storage', badge: 'Top Picks' },
-    { id: 5,  name: 'Home Appliances',           count: '25+',  emoji: '🏠', gradient: 'from-blue-500 to-indigo-600',  href: '#', description: 'Iron Boxes, Fans, Space Heaters, Surge Protectors'                                       },
-    { id: 6,  name: 'Beverage & Coffee',         count: '10+',  emoji: '☕', gradient: 'from-amber-600 to-yellow-700', href: '#', description: 'Vacuum Flasks & Coffee Pots'                                                             },
+    { id: 1,  name: 'Deep Fryers',              count: '20+',  emoji: '🍟', gradient: 'from-orange-400 to-red-500',    href: '/category/deep-fryers', description: 'Single Tank (6L), Double Tank (12L), Fryer Combo Bundles',              badge: 'Popular'   },
+    { id: 2,  name: 'Electric Kettles',          count: '15+',  emoji: '☕', gradient: 'from-amber-400 to-yellow-500',  href: '/category/electric-kettles', description: 'Standard Kettles, Kettle Combo Bundles'                                                  },
+    { id: 3,  name: 'Cooking Appliances',        count: '30+',  emoji: '🍳', gradient: 'from-emerald-500 to-teal-600', href: '/category/cooking-appliances', description: 'Gas Cookers/Burners, Electric Cookers, Egg Boilers & Steamers'                          },
+    { id: 4,  name: 'Cookware & Kitchen Tools',  count: '50+',  emoji: '🥘', gradient: 'from-rose-500 to-pink-600',    href: '/category/cookware', description: 'Pots & Sufuria Sets, Frying Pans & Woks, Utensil Sets, Food Storage', badge: 'Top Picks' },
+    { id: 5,  name: 'Home Appliances',           count: '25+',  emoji: '🏠', gradient: 'from-blue-500 to-indigo-600',  href: '/category/home-appliances', description: 'Iron Boxes, Fans, Space Heaters, Surge Protectors'                                       },
+    { id: 6,  name: 'Beverage & Coffee',         count: '10+',  emoji: '☕', gradient: 'from-amber-600 to-yellow-700', href: '/category/beverage', description: 'Vacuum Flasks & Coffee Pots'                                                             },
     // Original categories
-    { id: 7,  name: 'Power Tools',               count: '250+', emoji: '🔧', gradient: 'from-emerald-500 to-teal-600', href: '#', description: 'Drills, grinders, saws and more',                                    badge: 'Popular'   },
-    { id: 8,  name: 'Electrical Supplies',       count: '180+', emoji: '💡', gradient: 'from-amber-400 to-orange-500', href: '#', description: 'Cables, switches, panels'                                                                },
-    { id: 9,  name: 'Plumbing',                  count: '120+', emoji: '🔩', gradient: 'from-blue-500 to-blue-600',    href: '#', description: 'Pipes, fittings, valves'                                                                  },
-    { id: 10, name: 'Safety Equipment',          count: '90+',  emoji: '⛑️', gradient: 'from-red-500 to-rose-600',    href: '#', description: 'Helmets, gloves, boots',                                             badge: 'Essential' },
-    { id: 11, name: 'Paint & Supplies',          count: '150+', emoji: '🎨', gradient: 'from-purple-500 to-purple-600',href: '#', description: 'Interior & exterior paints'                                                              },
-    { id: 12, name: 'Garden & Outdoor',          count: '110+', emoji: '🌿', gradient: 'from-lime-500 to-green-600',   href: '#', description: 'Hoses, tools, furniture'                                                                  },
+    { id: 7,  name: 'Power Tools',               count: '250+', emoji: '🔧', gradient: 'from-emerald-500 to-teal-600', href: '/category/power-tools', description: 'Drills, grinders, saws and more',                                    badge: 'Popular'   },
+    { id: 8,  name: 'Electrical Supplies',       count: '180+', emoji: '💡', gradient: 'from-amber-400 to-orange-500', href: '/category/electrical', description: 'Cables, switches, panels'                                                                },
+    { id: 9,  name: 'Plumbing',                  count: '120+', emoji: '🔩', gradient: 'from-blue-500 to-blue-600',    href: '/category/plumbing', description: 'Pipes, fittings, valves'                                                                  },
+    { id: 10, name: 'Safety Equipment',          count: '90+',  emoji: '⛑️', gradient: 'from-red-500 to-rose-600',    href: '/category/safety-equipment', description: 'Helmets, gloves, boots',                                             badge: 'Essential' },
+    { id: 11, name: 'Paint & Supplies',          count: '150+', emoji: '🎨', gradient: 'from-purple-500 to-purple-600',href: '/category/paint', description: 'Interior & exterior paints'                                                              },
+    { id: 12, name: 'Garden & Outdoor',          count: '110+', emoji: '🌿', gradient: 'from-lime-500 to-green-600',   href: '/category/garden-outdoor', description: 'Hoses, tools, furniture'                                                                  },
 ];
 
 export default function CategoryTiles() {

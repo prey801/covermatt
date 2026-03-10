@@ -1,11 +1,45 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ShoppingBag, Mail, Lock, Eye, EyeOff, ArrowRight, Phone } from 'lucide-react';
 
 export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Login failed');
+            }
+
+            // Redirect on success
+            router.push(data.redirect || '/admin');
+            router.refresh();
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -68,7 +102,7 @@ export default function LoginPage() {
                         ))}
                     </div>
 
-                    <form onSubmit={e => e.preventDefault()} className="space-y-4">
+                    <form onSubmit={handleLogin} className="space-y-4">
                         {loginMethod === 'email' ? (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
@@ -76,6 +110,9 @@ export default function LoginPage() {
                                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                     <input
                                         type="email"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        required
                                         placeholder="john@example.com"
                                         className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all"
                                     />
@@ -104,6 +141,9 @@ export default function LoginPage() {
                                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    required
                                     placeholder="Enter your password"
                                     className="w-full border border-gray-200 rounded-xl pl-10 pr-11 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-50 transition-all"
                                 />
@@ -117,13 +157,19 @@ export default function LoginPage() {
                             </div>
                         </div>
 
+                        {error && (
+                            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-medium">
+                                {error}
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-2">
                             <input type="checkbox" id="remember" className="accent-emerald-500 w-4 h-4" />
                             <label htmlFor="remember" className="text-sm text-gray-500">Remember me</label>
                         </div>
 
-                        <button type="submit" className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-                            Sign In <ArrowRight className="w-4 h-4" />
+                        <button type="submit" disabled={isLoading} className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                            {isLoading ? 'Signing in...' : <><Lock className="w-4 h-4" /> Sign In</>}
                         </button>
                     </form>
 

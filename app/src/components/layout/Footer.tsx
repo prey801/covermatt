@@ -7,12 +7,12 @@ import {
 } from 'lucide-react';
 
 const QUICK_LINKS = [
-    { label: 'Power Tools', href: '/' },
-    { label: 'Electrical Supplies', href: '/' },
-    { label: 'Plumbing', href: '/' },
-    { label: 'Paint & Supplies', href: '/' },
-    { label: 'Safety Equipment', href: '/' },
-    { label: 'All Categories', href: '/' },
+    { label: 'Power Tools', href: '/category/power-tools' },
+    { label: 'Electrical Supplies', href: '/category/electrical' },
+    { label: 'Plumbing', href: '/category/plumbing' },
+    { label: 'Paint & Supplies', href: '/category/paint' },
+    { label: 'Safety Equipment', href: '/category/safety-equipment' },
+    { label: 'All Categories', href: '/#categories' },
 ];
 
 const SUPPORT_LINKS = [

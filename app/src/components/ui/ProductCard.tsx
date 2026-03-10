@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { ShoppingBag, Heart, Star, Eye, Zap, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
@@ -55,7 +56,7 @@ export default function ProductCard({ product, size = 'default' }: ProductCardPr
     return (
         <div className={`bg-white rounded-2xl overflow-hidden border border-gray-100 group transition-all duration-300 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-50/80 ${size === 'deal' ? 'min-w-[240px]' : ''}`}>
             {/* Image */}
-            <div className="relative bg-gray-50 overflow-hidden" style={{ aspectRatio: '1' }}>
+            <Link href={`/product/${product.id}`} className="relative bg-gray-50 overflow-hidden block" style={{ aspectRatio: '1' }}>
                 <div className="w-full h-full flex items-center justify-center text-6xl sm:text-7xl transition-transform duration-400 group-hover:scale-110">
                     {product.image}
                 </div>
@@ -90,9 +91,9 @@ export default function ProductCard({ product, size = 'default' }: ProductCardPr
 
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-                    <button className="bg-white text-gray-700 font-semibold text-xs px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-50 transition-colors shadow-lg translate-y-2 group-hover:translate-y-0 transition-transform">
+                    <div className="bg-white text-gray-700 font-semibold text-xs px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-50 transition-colors shadow-lg translate-y-2 group-hover:translate-y-0 transition-transform">
                         <Eye className="w-3.5 h-3.5" /> Quick View
-                    </button>
+                    </div>
                 </div>
 
                 {/* OOS overlay */}
@@ -101,14 +102,16 @@ export default function ProductCard({ product, size = 'default' }: ProductCardPr
                         <span className="bg-gray-500 text-white text-xs font-bold px-4 py-2 rounded-xl">Sold Out</span>
                     </div>
                 )}
-            </div>
+            </Link>
 
             {/* Info */}
             <div className="p-3.5 sm:p-4">
                 <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">{product.category}</p>
-                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1 group-hover:text-emerald-600 transition-colors">
-                    {product.name}
-                </h3>
+                <Link href={`/product/${product.id}`} className="block">
+                    <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1 group-hover:text-emerald-600 transition-colors">
+                        {product.name}
+                    </h3>
+                </Link>
                 <p className="text-[11px] text-gray-400 mb-2">by {product.brand}</p>
 
                 {/* Rating */}

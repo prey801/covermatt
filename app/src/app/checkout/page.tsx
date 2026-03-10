@@ -1,8 +1,18 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, ChevronRight, Smartphone, CreditCard, Truck, Package } from 'lucide-react';
+import { CheckCircle, ChevronRight, Smartphone, CreditCard, Truck, Package, MapPin } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import dynamic from 'next/dynamic';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+const MapPicker = dynamic(() => import('@/components/ui/MapPicker'), { 
+    ssr: false, 
+    loading: () => <div className="h-[300px] w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-sm text-gray-500">Loading Map...</div> 
+});
 
 const STEPS = ['Shipping', 'Payment', 'Confirmation'];
 
@@ -15,10 +25,17 @@ const PAYMENT_METHODS = [
         bg: 'bg-green-50 border-green-200',
     },
     {
-        id: 'card',
-        label: 'Card Payment',
+        id: 'airtel',
+        label: 'Airtel Money',
+        icon: <Smartphone className="w-5 h-5 text-red-600" />,
+        desc: 'Pay directly via Airtel Money',
+        bg: 'bg-red-50 border-red-200',
+    },
+    {
+        id: 'visa',
+        label: 'Visa / Mastercard',
         icon: <CreditCard className="w-5 h-5 text-blue-600" />,
-        desc: 'Visa, Mastercard accepted',
+        desc: 'Pay securely with your card',
         bg: 'bg-blue-50 border-blue-200',
     },
     {
@@ -31,15 +48,154 @@ const PAYMENT_METHODS = [
 ];
 
 export default function CheckoutPage() {
+    return (
+        <Elements stripe={stripePromise}>
+            <CheckoutContent />
+        </Elements>
+    );
+}
+
+function CheckoutContent() {
     const [step, setStep] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('mpesa');
     const [agreed, setAgreed] = useState(false);
+    const [mpesaPhone, setMpesaPhone] = useState('');
+    const [airtelPhone, setAirtelPhone] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
     const { items, total, itemCount, clearCart } = useCart();
     const [orderNumber] = useState(() => `ORD-${Math.floor(Math.random() * 90000) + 10000}`);
+    
+    // Address Information State
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [address, setAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+    const [showMap, setShowMap] = useState(false);
+    
+    // Stripe hooks
+    const stripe = useStripe();
+    const elements = useElements();
 
-    const handleConfirm = () => {
-        setStep(2);
-        clearCart();
+    const createOrder = async (orderData: any) => {
+        try {
+            await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            });
+        } catch (error) {
+            console.error('Failed to create order', error);
+        }
+    };
+
+    const handleConfirm = async () => {
+        const orderPayload = {
+            id: orderNumber,
+            customer: { name: fullName || 'Guest Customer', email: email || 'guest@example.com', phone: phone || '' },
+            items: items.map(i => ({ productId: i.id, name: i.name, qty: i.quantity, price: i.price * i.quantity })),
+            total: total + (total < 5000 ? 300 : 0),
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            address: `${address || 'Unknown Address'}, ${city || 'Nairobi'}${coordinates ? ` | Map: ${coordinates.lat.toFixed(4)},${coordinates.lng.toFixed(4)}` : ''}`,
+            paymentMethod: paymentMethod,
+            paymentStatus: paymentMethod === 'delivery' ? 'pending' : 'paid',
+            transactionId: paymentMethod !== 'delivery' ? `TRX-${Math.random().toString(36).substring(2, 10).toUpperCase()}` : ''
+        };
+
+        if (paymentMethod === 'mpesa') {
+            try {
+                setIsProcessing(true);
+                setPaymentError('');
+                const res = await fetch('/api/mpesa/stkpush', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: mpesaPhone,
+                        amount: total + (total < 5000 ? 300 : 0),
+                        reference: orderNumber
+                    })
+                });
+                const data = await res.json();
+                
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Payment initiation failed');
+                }
+                
+                await createOrder({ ...orderPayload, transactionId: data.data?.CheckoutRequestID || orderPayload.transactionId });
+                setStep(2);
+                clearCart();
+            } catch (err: any) {
+                setPaymentError(err.message || 'An error occurred during payment');
+            } finally {
+                setIsProcessing(false);
+            }
+        } else if (paymentMethod === 'airtel') {
+            setIsProcessing(true);
+            // Simulate a push authentication delay for Airtel Money
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await createOrder({ ...orderPayload, paymentMethod: 'airtel' });
+            setIsProcessing(false);
+            setStep(2);
+            clearCart();
+        } else if (paymentMethod === 'visa') {
+             if (!stripe || !elements) return;
+
+             setIsProcessing(true);
+             setPaymentError('');
+             
+             try {
+                // 1. Create Payment Intent on our server
+                const res = await fetch('/api/stripe/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: total + (total < 5000 ? 300 : 0) })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to initialize payment');
+
+                // 2. Confirm the payment on the client
+                const cardElement = elements.getElement(CardElement);
+                if (!cardElement) throw new Error('Card element not found');
+
+                const result = await stripe.confirmCardPayment(data.clientSecret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: fullName,
+                            email: email,
+                            phone: phone,
+                        },
+                    },
+                });
+
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+
+                if (result.paymentIntent?.status === 'succeeded') {
+                    // Success
+                    await createOrder({ ...orderPayload, paymentMethod: 'visa', transactionId: result.paymentIntent.id });
+                    setStep(2);
+                    clearCart();
+                }
+             } catch (err: any) {
+                 setPaymentError(err.message || 'An error occurred during Visa payment');
+             } finally {
+                 setIsProcessing(false);
+             }
+        } else {
+            setIsProcessing(true);
+            // Simulate processing
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            await createOrder(orderPayload);
+            setIsProcessing(false);
+            setStep(2);
+            clearCart();
+        }
     };
 
     if (step === 2) {
@@ -107,12 +263,24 @@ export default function CheckoutPage() {
                                                 type={field === 'Email Address' ? 'email' : field === 'Phone Number' ? 'tel' : 'text'}
                                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-50 transition-all"
                                                 placeholder={`Enter your ${field.toLowerCase()}`}
+                                                onChange={(e) => {
+                                                    if (field === 'Full Name') setFullName(e.target.value);
+                                                    if (field === 'Phone Number') setPhone(e.target.value);
+                                                    if (field === 'Email Address') setEmail(e.target.value);
+                                                    if (field === 'Street Address') setAddress(e.target.value);
+                                                }}
                                             />
                                         </div>
                                     ))}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">City/Town *</label>
-                                        <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" placeholder="Nairobi" />
+                                        <input 
+                                            type="text" 
+                                            value={city}
+                                            onChange={(e) => setCity(e.target.value)}
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" 
+                                            placeholder="Nairobi" 
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">County/Region *</label>
@@ -128,6 +296,39 @@ export default function CheckoutPage() {
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Delivery Instructions (optional)</label>
                                         <textarea rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all resize-none" placeholder="e.g. Call before delivery, side gate..." />
                                     </div>
+                                </div>
+                                
+                                {/* Map Selection */}
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-semibold text-gray-900 text-sm">Pinpoint Delivery Location</h3>
+                                        <button 
+                                            onClick={() => setShowMap(!showMap)} 
+                                            className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 transition-colors"
+                                        >
+                                            <MapPin className="w-3.5 h-3.5" />
+                                            {showMap ? 'Hide Map' : (coordinates ? 'Update Pin' : 'Drop a Pin')}
+                                        </button>
+                                    </div>
+                                    
+                                    {showMap && (
+                                        <div className="mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                                            <p className="text-xs text-gray-500 mb-2">Click anywhere on the map to set your exact delivery location.</p>
+                                            <MapPicker onLocationSelect={(lat, lng) => setCoordinates({ lat, lng })} />
+                                        </div>
+                                    )}
+                                    
+                                    {coordinates && !showMap && (
+                                        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-start gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-emerald-500 shadow-sm shrink-0">
+                                                <MapPin className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">Location Pinned</p>
+                                                <p className="text-xs text-gray-500">{coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Delivery options */}
@@ -155,7 +356,7 @@ export default function CheckoutPage() {
                         {step === 1 && (
                             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                                 <h2 className="text-xl font-bold text-[#1f2937] mb-5">Payment Method</h2>
-                                <div className="space-y-3 mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                                     {PAYMENT_METHODS.map(m => (
                                         <label key={m.id} className={`flex items-center gap-4 p-4 border-2 rounded-2xl cursor-pointer transition-all ${paymentMethod === m.id ? `${m.bg} border-current opacity-100` : 'border-gray-200 hover:border-gray-300'}`}>
                                             <input
@@ -178,18 +379,53 @@ export default function CheckoutPage() {
                                 {paymentMethod === 'mpesa' && (
                                     <div className="mb-6">
                                         <label className="block text-sm font-medium text-gray-700 mb-1.5">M-Pesa Phone Number</label>
-                                        <input type="tel" placeholder="+254 7XX XXX XXX" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" />
+                                        <input 
+                                            type="tel" 
+                                            value={mpesaPhone}
+                                            onChange={(e) => setMpesaPhone(e.target.value)}
+                                            placeholder="e.g. 0712345678 or 2547..." 
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" 
+                                        />
                                         <p className="text-xs text-gray-400 mt-2">You will receive an STK push notification to complete payment</p>
                                     </div>
                                 )}
 
-                                {paymentMethod === 'card' && (
+                                {paymentMethod === 'airtel' && (
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Airtel Money Phone Number</label>
+                                        <input 
+                                            type="tel" 
+                                            value={airtelPhone}
+                                            onChange={(e) => setAirtelPhone(e.target.value.replace(/\D/g, ''))}
+                                            placeholder="e.g. 073... or 25473..." 
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-100 transition-all" 
+                                        />
+                                        <p className="text-xs text-gray-400 mt-2">Enter your Airtel number to receive a payment prompt.</p>
+                                    </div>
+                                )}
+
+                                {paymentMethod === 'visa' && (
                                     <div className="mb-6 space-y-3">
-                                        <input type="text" placeholder="Card number" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" />
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <input type="text" placeholder="MM / YY" className="border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" />
-                                            <input type="text" placeholder="CVV" className="border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-emerald-500 transition-all" />
+                                        <div className="p-4 border border-gray-200 rounded-xl bg-white focus-within:border-emerald-500 transition-all">
+                                            <CardElement options={{
+                                                style: {
+                                                    base: {
+                                                        fontSize: '15px',
+                                                        color: '#1f2937',
+                                                        fontFamily: '"Inter", sans-serif',
+                                                        '::placeholder': {
+                                                            color: '#9ca3af',
+                                                        },
+                                                    },
+                                                    invalid: {
+                                                        color: '#ef4444',
+                                                    },
+                                                },
+                                            }} />
                                         </div>
+                                        <p className="text-[10px] text-gray-400 mt-2 flex items-center gap-1">
+                                            <CheckCircle className="w-3 h-3 text-emerald-500" /> Secure encrypted payment processing via Stripe
+                                        </p>
                                     </div>
                                 )}
 
@@ -200,8 +436,28 @@ export default function CheckoutPage() {
                                     </span>
                                 </label>
 
-                                <button onClick={handleConfirm} disabled={!agreed} className="btn-emerald w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <CheckCircle className="w-5 h-5" /> Complete Order
+                                {paymentError && (
+                                    <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 font-medium">
+                                        {paymentError}
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={handleConfirm} 
+                                    disabled={
+                                        !agreed || 
+                                        isProcessing || 
+                                        (paymentMethod === 'mpesa' && !mpesaPhone) ||
+                                        (paymentMethod === 'airtel' && !airtelPhone) ||
+                                        (paymentMethod === 'visa' && !stripe)
+                                    } 
+                                    className="btn-emerald w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isProcessing ? (
+                                        <span className="flex items-center gap-2 animate-pulse">Processing...</span>
+                                    ) : (
+                                        <><CheckCircle className="w-5 h-5" /> Complete Order</>
+                                    )}
                                 </button>
                             </div>
                         )}

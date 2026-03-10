@@ -6,9 +6,8 @@ import User from '@/models/User';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get('auth_token')?.value;

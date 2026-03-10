@@ -1,6 +1,22 @@
 import { NextResponse } from 'next/server';
 import { readData, writeData } from '@/lib/dataStore';
 
+export interface Order {
+    id: string;
+    customer: {
+        name: string;
+        email: string;
+        phone: string;
+    };
+    address: string;
+    items: any[];
+    total: number;
+    status: string;
+    paymentMethod: string;
+    paymentStatus: string;
+    createdAt: string;
+}
+
 export async function GET() {
     const orders = readData('orders.json');
     return NextResponse.json(orders);

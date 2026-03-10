@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartProvider from "@/context/CartContext";
 import ToastContainer from "@/components/ui/ToastContainer";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Covermatt Hardware & Electricals | Kenya's #1 Hardware Store",
@@ -30,6 +31,7 @@ export default function RootLayout({
           <main>{children}</main>
           <Footer />
           <ToastContainer />
+          <Analytics />
         </CartProvider>
       </body>
     </html>

@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Product from '@/models/Product';
 import Order from '@/models/Order';
+import { isAdminAuthenticated } from '@/lib/adminAuth';
 
 export async function GET() {
+    const authed = await isAdminAuthenticated();
+    if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     try {
         await connectToDatabase();
         const products = await Product.find({}).lean();

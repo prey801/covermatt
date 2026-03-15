@@ -4,6 +4,8 @@ import Order from '@/models/Order';
 import { Package, ShoppingCart, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 const STATUS_STYLES: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
     processing: 'bg-blue-100 text-blue-700',

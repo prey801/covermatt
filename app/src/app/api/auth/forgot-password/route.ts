@@ -30,7 +30,7 @@ export async function POST(request: Request) {
         user.resetPasswordExpiry = tokenExpiry;
         await user.save();
 
-        const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
         await resend.emails.send({
             from: 'Covermatt <onboarding@resend.dev>',

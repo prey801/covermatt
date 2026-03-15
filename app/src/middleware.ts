@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
 
   // 1. If hitting a protected route but no token is found, redirect to login
   if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
   // 2. Verify the JWT token securely
@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
 
   if (!payload || payload.role !== 'admin') {
     // Token is invalid or expired
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/admin/login', request.url));
   }
 
   // 3. User is authorized! Allow the request to proceed

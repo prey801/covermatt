@@ -5,12 +5,11 @@ import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import africastalking from 'africastalking';
 
-const AT = africastalking({
-    apiKey: process.env.AT_API_KEY!,
-    username: process.env.AT_USERNAME!
-});
-
 export async function POST(request: Request) {
+    const AT = africastalking({
+        apiKey: process.env.AT_API_KEY || 'sandbox',
+        username: process.env.AT_USERNAME || 'sandbox'
+    });
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get('auth_token')?.value;

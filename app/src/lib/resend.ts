@@ -1,6 +1,9 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazily instantiated so env vars are only read at runtime, not at build time
+function getResend() {
+    return new Resend(process.env.RESEND_API_KEY);
+}
 
 const FROM_ADDRESS = 'Covermatt <admin@covermatt.co.ke>';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -56,7 +59,7 @@ function ctaButton(href: string, label: string): string {
 
 // ─── 1. Welcome / Registration Email ────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, name: string) {
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM_ADDRESS,
         to,
         subject: 'Welcome to Covermatt 🎉',
@@ -80,7 +83,7 @@ export async function sendWelcomeEmail(to: string, name: string) {
 // ─── 2. Email Verification ───────────────────────────────────────────────────
 export async function sendVerificationEmail(to: string, verificationToken: string) {
     const verificationUrl = `${APP_URL}/verify-email?token=${verificationToken}`;
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM_ADDRESS,
         to,
         subject: 'Verify your Covermatt account',
@@ -104,7 +107,7 @@ export async function sendVerificationEmail(to: string, verificationToken: strin
 // ─── 3. Password Reset ───────────────────────────────────────────────────────
 export async function sendPasswordResetEmail(to: string, resetToken: string) {
     const resetUrl = `${APP_URL}/reset-password?token=${resetToken}`;
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM_ADDRESS,
         to,
         subject: 'Reset your Covermatt password',
@@ -144,7 +147,7 @@ export async function sendOrderConfirmationEmail(to: string, order: {
 
     const shortId = order.id.slice(-8).toUpperCase();
 
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM_ADDRESS,
         to,
         subject: `Order Confirmed — #${shortId}`,
@@ -208,7 +211,7 @@ export async function sendAdminNewOrderAlert(adminEmail: string, order: {
         `<li style="margin-bottom:4px;color:#374151;font-size:14px;">${item.name} × ${item.quantity} — KSh ${(item.price * item.quantity).toLocaleString()}</li>`
     ).join('');
 
-    return resend.emails.send({
+    return getResend().emails.send({
         from: FROM_ADDRESS,
         to: adminEmail,
         subject: `🛍️ New Order #${shortId} — KSh ${order.total.toLocaleString()}`,

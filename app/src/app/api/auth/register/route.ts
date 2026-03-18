@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/jwt';
+import { sendWelcomeEmail } from '@/lib/resend';
 
 export async function POST(req: Request) {
     try {
@@ -32,6 +33,11 @@ export async function POST(req: Request) {
             phone: phone || '',
             role: 'customer'
         });
+
+        // Send welcome email (fire-and-forget — don't block registration on email failure)
+        sendWelcomeEmail(newUser.email, newUser.name).catch(err =>
+            console.error('Welcome email failed:', err)
+        );
 
         // Auto-login after registration
         const token = await signToken({ 

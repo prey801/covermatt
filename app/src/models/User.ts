@@ -4,6 +4,7 @@ export interface IUser extends Document {
     name: string;
     email: string;
     password?: string;
+    googleId?: string;
     role: 'customer' | 'admin';
     phone?: string;
     addresses: {
@@ -33,7 +34,8 @@ const AddressSchema = new Schema({
 const UserSchema = new Schema<IUser>({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: false }, // Optional because Admin comes from env
+    password: { type: String, required: false }, // Optional - Google users won't have one
+    googleId: { type: String, required: false, unique: true, sparse: true },
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
     phone: { type: String, required: false },
     addresses: { type: [AddressSchema], default: [] },

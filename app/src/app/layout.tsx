@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CartProvider from "@/context/CartContext";
+import AuthProvider from "@/context/AuthProvider";
 import ToastContainer from "@/components/ui/ToastContainer";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -26,14 +27,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <CartProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <ToastContainer />
-          <Analytics />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Header />
+            <main>{children}</main>
+            <Footer />
+            <ToastContainer />
+            <Analytics />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
 }
+

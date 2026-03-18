@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
+import { sendOrderConfirmationEmail, sendAdminNewOrderAlert } from '@/lib/resend';
 
 export interface OrderType {
     id: string;
@@ -38,7 +39,6 @@ export async function GET() {
             // If admin, query remains {} (fetch all)
         } else {
              // If not logged in at all, return nothing for security
-             // Optional: You could rely on email alone for guest tracking, but tying it to an account is safer.
              return NextResponse.json([]);
         }
 
@@ -81,12 +81,37 @@ export async function POST(req: Request) {
             status: orderData.status || 'pending',
             paymentStatus: orderData.paymentStatus || 'pending'
         });
+
+        const orderId = newOrder._id.toString();
+        const emailPayload = {
+            id: orderId,
+            customer: newOrder.customer,
+            address: newOrder.address,
+            items: newOrder.items,
+            total: newOrder.total,
+            paymentMethod: newOrder.paymentMethod,
+        };
+
+        // Send order confirmation to customer (fire-and-forget)
+        if (newOrder.customer?.email) {
+            sendOrderConfirmationEmail(newOrder.customer.email, emailPayload).catch(err =>
+                console.error('Order confirmation email failed:', err)
+            );
+        }
+
+        // Send new-order alert to admin (fire-and-forget)
+        const adminEmail = process.env.ADMIN_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
+        if (adminEmail && adminEmail !== 'Admin') {
+            sendAdminNewOrderAlert(adminEmail, emailPayload).catch(err =>
+                console.error('Admin order alert email failed:', err)
+            );
+        }
         
         return NextResponse.json({ 
             success: true, 
             order: {
                 ...newOrder.toObject(),
-                id: newOrder._id.toString()
+                id: orderId
             }
         });
     } catch (error: any) {
@@ -94,3 +119,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, error: 'Failed to create order' }, { status: 500 });
     }
 }
+

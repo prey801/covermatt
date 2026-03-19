@@ -15,6 +15,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
+        if (password.length < 8) {
+            return NextResponse.json({ success: false, error: 'Password must be at least 8 characters' }, { status: 400 });
+        }
+
         // Check if user already exists
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {

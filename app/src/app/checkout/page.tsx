@@ -63,8 +63,10 @@ function CheckoutContent() {
     const [airtelPhone, setAirtelPhone] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentError, setPaymentError] = useState('');
+    const [confirmedOrderId, setConfirmedOrderId] = useState('');
     const { items, total, itemCount, clearCart } = useCart();
-    const [orderNumber] = useState(() => `ORD-${Math.floor(Math.random() * 90000) + 10000}`);
+    // Kept as a fallback reference; real ID is set from DB response after order creation
+    const orderRef = `ORD-${Math.floor(Math.random() * 90000) + 10000}`;
     
     // Address Information State
     const [fullName, setFullName] = useState('');
@@ -79,43 +81,53 @@ function CheckoutContent() {
     const stripe = useStripe();
     const elements = useElements();
 
-    const createOrder = async (orderData: any) => {
-        try {
-            await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            });
-        } catch (error) {
-            console.error('Failed to create order', error);
+    // BUG-03 fixed: now throws on failure so the caller can handle it properly
+    const createOrder = async (orderData: any): Promise<string> => {
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Failed to save order');
         }
+        // Return the real MongoDB _id to display on the confirmation screen
+        return data.order?.id || orderRef;
     };
 
     const handleConfirm = async () => {
         const orderPayload = {
-            id: orderNumber,
             customer: { name: fullName || 'Guest Customer', email: email || 'guest@example.com', phone: phone || '' },
-            items: items.map(i => ({ productId: i.id, name: i.name, qty: i.quantity, price: i.price * i.quantity })),
+            // BUG-04 fixed: price is the unit price, not the line total
+            items: items.map(i => ({ productId: i.id, name: i.name, qty: i.quantity, price: i.price })),
             total: total + (total < 5000 ? 300 : 0),
             status: 'pending',
             createdAt: new Date().toISOString(),
             address: `${address || 'Unknown Address'}, ${city || 'Nairobi'}${coordinates ? ` | Map: ${coordinates.lat.toFixed(4)},${coordinates.lng.toFixed(4)}` : ''}`,
             paymentMethod: paymentMethod,
             paymentStatus: paymentMethod === 'delivery' ? 'pending' : 'paid',
-            transactionId: paymentMethod !== 'delivery' ? `TRX-${Math.random().toString(36).substring(2, 10).toUpperCase()}` : ''
+            transactionId: ''
         };
 
         if (paymentMethod === 'mpesa') {
             try {
                 setIsProcessing(true);
                 setPaymentError('');
+
+                // BUG-09 fixed: validate phone format before sending to Safaricom
+                const phoneRegex = /^(0[71]\d{8}|254[71]\d{8})$/;
+                if (!phoneRegex.test(mpesaPhone.replace(/\s+/g, ''))) {
+                    throw new Error('Enter a valid Safaricom number (e.g. 0712345678)');
+                }
+
                 const res = await fetch('/api/mpesa/stkpush', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         phone: mpesaPhone,
                         amount: total + (total < 5000 ? 300 : 0),
-                        reference: orderNumber
+                        reference: orderRef
                     })
                 });
                 const data = await res.json();
@@ -124,7 +136,9 @@ function CheckoutContent() {
                     throw new Error(data.error || 'Payment initiation failed');
                 }
                 
-                await createOrder({ ...orderPayload, transactionId: data.data?.CheckoutRequestID || orderPayload.transactionId });
+                // BUG-03 fixed: errors from createOrder now propagate
+                const savedId = await createOrder({ ...orderPayload, transactionId: data.data?.CheckoutRequestID || '' });
+                setConfirmedOrderId(savedId);
                 setStep(2);
                 clearCart();
             } catch (err: any) {
@@ -133,13 +147,20 @@ function CheckoutContent() {
                 setIsProcessing(false);
             }
         } else if (paymentMethod === 'airtel') {
-            setIsProcessing(true);
-            // Simulate a push authentication delay for Airtel Money
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await createOrder({ ...orderPayload, paymentMethod: 'airtel' });
-            setIsProcessing(false);
-            setStep(2);
-            clearCart();
+            try {
+                setIsProcessing(true);
+                setPaymentError('');
+                // NOTE: Airtel Money has no live integration — simulated flow
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                const savedId = await createOrder({ ...orderPayload, paymentMethod: 'airtel' });
+                setConfirmedOrderId(savedId);
+                setStep(2);
+                clearCart();
+            } catch (err: any) {
+                setPaymentError(err.message || 'Failed to save order');
+            } finally {
+                setIsProcessing(false);
+            }
         } else if (paymentMethod === 'visa') {
              if (!stripe || !elements) return;
 
@@ -177,8 +198,8 @@ function CheckoutContent() {
                 }
 
                 if (result.paymentIntent?.status === 'succeeded') {
-                    // Success
-                    await createOrder({ ...orderPayload, paymentMethod: 'visa', transactionId: result.paymentIntent.id });
+                    const savedId = await createOrder({ ...orderPayload, paymentMethod: 'visa', transactionId: result.paymentIntent.id });
+                    setConfirmedOrderId(savedId);
                     setStep(2);
                     clearCart();
                 }
@@ -188,13 +209,19 @@ function CheckoutContent() {
                  setIsProcessing(false);
              }
         } else {
-            setIsProcessing(true);
-            // Simulate processing
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await createOrder(orderPayload);
-            setIsProcessing(false);
-            setStep(2);
-            clearCart();
+            try {
+                setIsProcessing(true);
+                setPaymentError('');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                const savedId = await createOrder(orderPayload);
+                setConfirmedOrderId(savedId);
+                setStep(2);
+                clearCart();
+            } catch (err: any) {
+                setPaymentError(err.message || 'Failed to save order');
+            } finally {
+                setIsProcessing(false);
+            }
         }
     };
 
@@ -208,8 +235,9 @@ function CheckoutContent() {
                     <h1 className="text-3xl font-extrabold text-[#1f2937] font-[Poppins] mb-2">Order Confirmed!</h1>
                     <p className="text-gray-500 mb-4">Thank you for your order</p>
                     <div className="bg-emerald-50 rounded-2xl p-4 mb-6">
-                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Order Number</p>
-                        <p className="text-2xl font-bold text-emerald-600 font-mono">{orderNumber}</p>
+                        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Order ID</p>
+                        {/* BUG-12 fixed: show real DB order ID, not a random client-side number */}
+                        <p className="text-lg font-bold text-emerald-600 font-mono break-all">{confirmedOrderId}</p>
                     </div>
                     <div className="text-left space-y-3 mb-8">
                         <div className="flex items-center gap-3 text-sm text-gray-500">
@@ -347,7 +375,18 @@ function CheckoutContent() {
                                     ))}
                                 </div>
 
-                                <button onClick={() => setStep(1)} className="btn-emerald w-full py-4 rounded-2xl font-bold mt-6 flex items-center justify-center gap-2">
+                                {/* BUG-08 fixed: validate required fields before advancing */}
+                                <button
+                                    onClick={() => {
+                                        if (!fullName.trim()) { alert('Please enter your full name'); return; }
+                                        if (!phone.trim()) { alert('Please enter your phone number'); return; }
+                                        if (!email.trim()) { alert('Please enter your email address'); return; }
+                                        if (!address.trim()) { alert('Please enter your street address'); return; }
+                                        if (!city.trim()) { alert('Please enter your city/town'); return; }
+                                        setStep(1);
+                                    }}
+                                    className="btn-emerald w-full py-4 rounded-2xl font-bold mt-6 flex items-center justify-center gap-2"
+                                >
                                     Continue to Payment <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>

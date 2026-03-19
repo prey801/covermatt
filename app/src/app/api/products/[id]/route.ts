@@ -21,10 +21,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     const body = await request.json();
-    
+
+    // Only allow known product fields — prevents injection of _id or other fields
+    const { name, description, price, category, image, rating, reviews, stockLevel, isNewItem, features } = body;
+    const updatePayload = { name, description, price, category, image, rating, reviews, stockLevel, isNewItem, features };
+    // Strip undefined fields
+    Object.keys(updatePayload).forEach(k => (updatePayload as any)[k] === undefined && delete (updatePayload as any)[k]);
+
     try {
         await connectToDatabase();
-        const product = await Product.findByIdAndUpdate(id, body, { new: true }).lean() as any;
+        const product = await Product.findByIdAndUpdate(id, updatePayload, { new: true }).lean() as any;
         if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         return NextResponse.json({ ...product, id: product._id.toString() });
     } catch (e) {

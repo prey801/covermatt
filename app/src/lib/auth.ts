@@ -59,7 +59,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Enrich the JWT token with our DB user ID and role
         async jwt({ token, account }) {
-            if (account?.provider === 'google' && token.email) {
+            // Always ensure userId is in the token — runs on first sign-in AND every refresh
+            if (!token.userId && token.email) {
                 try {
                     await connectToDatabase();
                     const dbUser = await User.findOne({ email: token.email.toLowerCase() });

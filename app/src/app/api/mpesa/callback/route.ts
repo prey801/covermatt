@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/mongodb';
+import Order from '@/models/Order';
 
 export async function POST(req: Request) {
     try {
@@ -11,14 +13,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ "ResultCode": 1, "ResultDesc": "Invalid payload" });
         }
 
+        const checkoutRequestId: string = result.CheckoutRequestID;
+
+        await connectToDatabase();
+
         if (result.ResultCode === 0) {
-            // Success
-            console.log(`Payment successful for MerchantRequestID: ${result.MerchantRequestID}`);
-            // TODO: Update order status to paid in database
+            // Payment succeeded — update the order linked to this CheckoutRequestID
+            await Order.findOneAndUpdate(
+                { transactionId: checkoutRequestId },
+                { paymentStatus: 'paid', status: 'processing' }
+            );
+            console.log(`Payment successful: ${checkoutRequestId}`);
         } else {
-            // Failed
-            console.log(`Payment failed for MerchantRequestID: ${result.MerchantRequestID}. Reason: ${result.ResultDesc}`);
-            // TODO: Update order status to failed in database
+            // Payment failed — mark order as failed
+            await Order.findOneAndUpdate(
+                { transactionId: checkoutRequestId },
+                { paymentStatus: 'failed' }
+            );
+            console.log(`Payment failed: ${checkoutRequestId} — ${result.ResultDesc}`);
         }
 
         return NextResponse.json({ "ResultCode": 0, "ResultDesc": "Accepted" });
@@ -27,3 +39,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ "ResultCode": 1, "ResultDesc": "Server Error" });
     }
 }
+

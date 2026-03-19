@@ -16,7 +16,7 @@ export async function POST(request: Request) {
         // Stripe requires the amount in the smallest currency unit (e.g., cents)
         // KES is treated as a 2-decimal currency by Stripe (1 KES = 100 cents)
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amount * 100),
+            amount: Math.round(amount), // KES is a zero-decimal currency in Stripe
             currency: 'kes',
             automatic_payment_methods: {
                 enabled: true,

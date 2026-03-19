@@ -3,7 +3,6 @@ import { signToken } from '@/lib/jwt';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
     try {
@@ -16,15 +15,15 @@ export async function POST(request: Request) {
 
         if (isValidAdmin) {
             const token = await signToken({ email, role: 'admin' });
-            const cookieStore = await cookies();
-            cookieStore.set('auth_token', token, {
+            const response = NextResponse.json({ success: true, redirect: '/admin' });
+            response.cookies.set('auth_token', token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'lax',
                 path: '/',
                 maxAge: 60 * 60 * 24 // 24 hours
             });
-            return NextResponse.json({ success: true, redirect: '/admin' });
+            return response;
         }
 
         // --- 2. Customer DB Login Fallback ---
@@ -46,17 +45,16 @@ export async function POST(request: Request) {
             email: user.email, 
             role: user.role 
         });
-            
-        const cookieStore = await cookies();
-        cookieStore.set('auth_token', token, {
+
+        const response = NextResponse.json({ success: true, redirect: '/account' });
+        response.cookies.set('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
             path: '/',
             maxAge: 60 * 60 * 24 // 24 hours
         });
-
-        return NextResponse.json({ success: true, redirect: '/account' });
+        return response;
 
     } catch (error: any) {
         console.error('Login Error:', error);
@@ -66,3 +64,4 @@ export async function POST(request: Request) {
         );
     }
 }
+

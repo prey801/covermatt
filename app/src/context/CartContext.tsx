@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 export interface CartItem {
     id: string;
@@ -25,6 +25,8 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
+const CART_STORAGE_KEY = 'covermatt_cart';
+
 export function useCart() {
     const ctx = useContext(CartContext);
     if (!ctx) throw new Error('useCart must be used inside CartProvider');
@@ -34,6 +36,25 @@ export function useCart() {
 export default function CartProvider({ children }: { children: React.ReactNode }) {
     const [items, setItems] = useState<CartItem[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
+
+    // Rehydrate from localStorage on mount
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(CART_STORAGE_KEY);
+            if (stored) setItems(JSON.parse(stored));
+        } catch {
+            // ignore corrupt storage
+        }
+    }, []);
+
+    // Persist to localStorage whenever items change
+    useEffect(() => {
+        try {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+        } catch {
+            // ignore storage errors (e.g. private mode quota)
+        }
+    }, [items]);
 
     const addItem = useCallback((item: Omit<CartItem, 'quantity'>) => {
         setItems(prev => {
@@ -65,3 +86,4 @@ export default function CartProvider({ children }: { children: React.ReactNode }
         </CartContext.Provider>
     );
 }
+

@@ -21,8 +21,8 @@ const ProductSchema = new Schema<IProduct>({
     price: { type: Number, required: true, min: 0 },
     category: { type: String, required: true },
     image: { type: String, required: true },
-    rating: { type: Number, required: true, default: 5.0 },
-    reviews: { type: Number, required: true, default: 0 },
+    rating: { type: Number, default: 5.0 },
+    reviews: { type: Number, default: 0 },
     stockLevel: { 
         type: String, 
         enum: ['in-stock', 'low-stock', 'out-of-stock'], 

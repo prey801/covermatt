@@ -20,6 +20,7 @@ export interface IOrder extends Document {
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
     paymentMethod: string;
     paymentStatus: string;
+    transactionId?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -47,7 +48,8 @@ const OrderSchema = new Schema<IOrder>({
         default: 'pending' 
     },
     paymentMethod: { type: String, required: true },
-    paymentStatus: { type: String, required: true, default: 'pending' }
+    paymentStatus: { type: String, required: true, default: 'pending' },
+    transactionId: { type: String, required: false }
 }, {
     timestamps: true
 });

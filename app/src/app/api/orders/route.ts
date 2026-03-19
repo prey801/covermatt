@@ -4,6 +4,7 @@ import Order from '@/models/Order';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { sendOrderConfirmationEmail, sendAdminNewOrderAlert } from '@/lib/resend';
+import { auth } from '@/lib/auth';
 
 export interface OrderType {
     id: string;
@@ -28,18 +29,38 @@ export async function GET() {
         const cookieStore = await cookies();
         const token = cookieStore.get('auth_token')?.value;
         
-        let query = {};
+        let query: any = {};
+        let authenticated = false;
         
         if (token) {
             const decoded = await verifyToken(token);
-            if (decoded && decoded.role !== 'admin') {
-                // Customer viewing their own orders
-                query = { 'userId': decoded.userId };
+            if (decoded) {
+                authenticated = true;
+                if (decoded.role === 'admin') {
+                    query = {}; // admin sees all orders
+                } else {
+                    // Customer viewing their own orders
+                    query = { userId: decoded.userId };
+                }
             }
-            // If admin, query remains {} (fetch all)
-        } else {
-             // If not logged in at all, return nothing for security
-             return NextResponse.json([]);
+        }
+        
+        // Fallback: check NextAuth session (Google OAuth users)
+        if (!authenticated) {
+            const session = await auth();
+            if (session?.user) {
+                const sessionUser = session.user as any;
+                if (sessionUser.role === 'admin') {
+                    query = {};
+                } else if (sessionUser.id) {
+                    query = { userId: sessionUser.id };
+                } else {
+                    return NextResponse.json([]);
+                }
+            } else {
+                // No auth at all — return nothing for security
+                return NextResponse.json([]);
+            }
         }
 
         const orders = await Order.find(query).sort({ createdAt: -1 });
@@ -56,6 +77,7 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 }
+
 
 export async function POST(req: Request) {
     try {

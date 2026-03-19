@@ -4,6 +4,7 @@ import Order from '@/models/Order';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { sendOrderConfirmationEmail, sendAdminNewOrderAlert } from '@/lib/resend';
+import { sendOrderSMS } from '@/lib/sms';
 import { auth } from '@/lib/auth';
 
 export interface OrderType {
@@ -118,6 +119,13 @@ export async function POST(req: Request) {
         if (newOrder.customer?.email) {
             sendOrderConfirmationEmail(newOrder.customer.email, emailPayload).catch(err =>
                 console.error('Order confirmation email failed:', err)
+            );
+        }
+
+        // Send SMS to customer's phone with order ID and total (fire-and-forget)
+        if (newOrder.customer?.phone) {
+            sendOrderSMS(newOrder.customer.phone, orderId, newOrder.total).catch(err =>
+                console.error('Order SMS failed:', err)
             );
         }
 

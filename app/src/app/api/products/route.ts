@@ -3,6 +3,11 @@ import connectToDatabase from '@/lib/mongodb';
 import Product from '@/models/Product';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
 
+/** Escape special regex characters to prevent ReDoS / injection */
+function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -14,14 +19,16 @@ export async function GET(request: Request) {
         let query: any = {};
 
         if (search) {
+            const safeSearch = escapeRegex(search);
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { category: { $regex: search, $options: 'i' } }
+                { name: { $regex: safeSearch, $options: 'i' } },
+                { category: { $regex: safeSearch, $options: 'i' } }
             ];
         }
 
         if (category && category !== 'all') {
-            query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+            const safeCategory = escapeRegex(category);
+            query.category = { $regex: new RegExp(`^${safeCategory}$`, 'i') };
         }
 
         const products = await Product.find(query).sort({ createdAt: -1 });

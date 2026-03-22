@@ -8,6 +8,101 @@ import {
     CheckCircle, Truck, Clock, Home, AlertTriangle, Send
 } from 'lucide-react';
 
+// ─── Skeleton helpers ────────────────────────────────────────────────────────
+function Sk({ className = '' }: { className?: string }) {
+    return <div className={`animate-pulse bg-white/30 rounded-lg ${className}`} />;
+}
+
+function SkLight({ className = '' }: { className?: string }) {
+    return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
+}
+
+function AccountSkeleton() {
+    return (
+        <div className="bg-gray-50 min-h-screen">
+            {/* Header skeleton */}
+            <div className="hero-gradient py-10 sm:py-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6">
+                    <div className="flex items-center gap-5">
+                        <Sk className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl" />
+                        <div className="space-y-2.5 flex-1">
+                            <Sk className="h-7 w-44" />
+                            <Sk className="h-4 w-60" />
+                            <Sk className="h-5 w-28 rounded-full" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+                <div className="flex flex-col lg:grid lg:grid-cols-[240px_1fr] gap-6">
+                    {/* Sidebar skeleton */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 h-fit">
+                        <div className="flex lg:flex-col gap-1">
+                            {[...Array(5)].map((_, i) => (
+                                <SkLight key={i} className="h-10 rounded-xl flex-1 lg:flex-none lg:w-full" />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Content skeleton */}
+                    <div className="space-y-5">
+                        {/* Stats cards */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-3">
+                                    <SkLight className="h-5 w-5 rounded-md" />
+                                    <SkLight className="h-8 w-16" />
+                                    <SkLight className="h-3 w-24" />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Recent orders card */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                                <SkLight className="h-5 w-32" />
+                                <SkLight className="h-4 w-16" />
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 sm:p-5">
+                                        <div className="space-y-2">
+                                            <SkLight className="h-4 w-48" />
+                                            <SkLight className="h-3 w-32" />
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <SkLight className="h-6 w-16 rounded-full" />
+                                            <SkLight className="h-4 w-20" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Personal info card */}
+                        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
+                            <div className="flex items-center justify-between mb-5">
+                                <SkLight className="h-5 w-48" />
+                                <SkLight className="h-4 w-10" />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="space-y-1.5">
+                                        <SkLight className="h-3 w-20" />
+                                        <SkLight className="h-5 w-40" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
 const TRACKING_STEPS = [
     { id: 'pending', label: 'Order Placed', icon: Clock },
     { id: 'processing', label: 'Processing', icon: Package },
@@ -132,6 +227,9 @@ export default function AccountPage() {
         setIsAddingNew(true);
         setEditingId(null);
     };
+
+    // Show full-page skeleton while fetching — completely replaces the real UI
+    if (isLoadingUser) return <AccountSkeleton />;
 
     return (
         <div className="bg-gray-50 min-h-screen">

@@ -2,12 +2,13 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    LayoutDashboard, Package, ShoppingCart, LogOut, Store, ChevronRight
+    LayoutDashboard, Package, ShoppingCart, LogOut, Store, ChevronRight, Warehouse
 } from 'lucide-react';
 
 const NAV = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/products', label: 'Products', icon: Package },
+    { href: '/admin/stock', label: 'Stock', icon: Warehouse },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
 ];
 

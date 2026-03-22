@@ -1,7 +1,7 @@
 import connectToDatabase from '@/lib/mongodb';
 import Product from '@/models/Product';
 import Order from '@/models/Order';
-import { Package, ShoppingCart, TrendingUp, AlertTriangle, Clock } from 'lucide-react';
+import { Package, ShoppingCart, TrendingUp, AlertTriangle, Clock, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -15,18 +15,25 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default async function AdminDashboard() {
-    await connectToDatabase();
-    
-    // Fetch directly from DB instead of JSON
-    const rawOrders = await Order.find({}).sort({ createdAt: -1 }).lean();
-    const rawProducts = await Product.find({}).lean();
+    let orders: any[] = [];
+    let products: any[] = [];
+    let dbError = false;
 
-    const orders = rawOrders.map((o: any) => ({ ...o, id: o._id.toString() }));
-    const products = rawProducts.map((p: any) => ({ ...p, id: p._id.toString() }));
+    try {
+        await connectToDatabase();
+        const rawOrders = await Order.find({}).sort({ createdAt: -1 }).lean();
+        const rawProducts = await Product.find({}).lean();
+
+        orders = rawOrders.map((o: any) => ({ ...o, id: o._id?.toString() ?? '' }));
+        products = rawProducts.map((p: any) => ({ ...p, id: p._id?.toString() ?? '' }));
+    } catch (err: any) {
+        console.error('Dashboard DB error:', err?.message);
+        dbError = true;
+    }
 
     const totalRevenue = orders
         .filter(o => o.status !== 'cancelled')
-        .reduce((sum, o) => sum + o.total, 0);
+        .reduce((sum, o) => sum + (o.total ?? 0), 0);
     const lowStock = products.filter(p => p.stockLevel === 'low-stock' || p.stockLevel === 'out-of-stock');
     const recentOrders = orders.slice(0, 5);
 
@@ -44,6 +51,17 @@ export default async function AdminDashboard() {
                 <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-500 text-sm mt-1">Welcome back! Here's an overview of your store.</p>
             </div>
+
+            {/* DB Error Banner */}
+            {dbError && (
+                <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
+                    <WifiOff className="w-5 h-5 text-red-500 shrink-0" />
+                    <div>
+                        <p className="text-sm font-semibold text-red-700">Unable to connect to the database</p>
+                        <p className="text-xs text-red-500 mt-0.5">Dashboard data is unavailable. Check your MongoDB connection and refresh the page.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -69,14 +87,16 @@ export default async function AdminDashboard() {
                         <Link href="/admin/orders" className="text-emerald-600 text-sm font-medium hover:underline">View all</Link>
                     </div>
                     <div className="divide-y divide-gray-50">
-                        {recentOrders.map(order => (
+                        {recentOrders.length === 0 ? (
+                            <p className="px-6 py-8 text-sm text-gray-400 text-center">No orders yet</p>
+                        ) : recentOrders.map(order => (
                             <div key={order.id} className="flex items-center justify-between px-6 py-3.5">
                                 <div>
                                     <p className="text-sm font-semibold text-gray-800">{order.id}</p>
-                                    <p className="text-xs text-gray-400">{order.customer.name} · {order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-gray-400">{order.customer?.name ?? 'Unknown'} · {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? 's' : ''}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-bold text-gray-900">KSh {order.total.toLocaleString()}</span>
+                                    <span className="text-sm font-bold text-gray-900">KSh {(order.total ?? 0).toLocaleString()}</span>
                                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLES[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
                                         {order.status}
                                     </span>
@@ -113,8 +133,8 @@ export default async function AdminDashboard() {
                         )}
                     </div>
                     <div className="px-6 py-3 border-t border-gray-50">
-                        <Link href="/admin/products" className="text-emerald-600 text-sm font-medium hover:underline flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5" /> Manage products
+                        <Link href="/admin/stock" className="text-emerald-600 text-sm font-medium hover:underline flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> Manage stock
                         </Link>
                     </div>
                 </div>
@@ -122,3 +142,4 @@ export default async function AdminDashboard() {
         </div>
     );
 }
+

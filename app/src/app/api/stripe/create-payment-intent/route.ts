@@ -12,11 +12,18 @@ export async function POST(request: Request) {
     try {
         const { amount } = await request.json();
 
+        // Validate amount
+        if (!amount || typeof amount !== 'number' || amount < 100) {
+            return NextResponse.json({ error: 'Invalid amount. Minimum is KSh 100.' }, { status: 400 });
+        }
+
+        if (amount > 500000) {
+            return NextResponse.json({ error: 'Amount exceeds maximum allowed.' }, { status: 400 });
+        }
+
         // Create a PaymentIntent with the order amount and currency
-        // Stripe requires the amount in the smallest currency unit (e.g., cents)
-        // KES is treated as a 2-decimal currency by Stripe (1 KES = 100 cents)
         const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(amount), // KES is a zero-decimal currency in Stripe
+            amount: Math.round(amount),
             currency: 'kes',
             automatic_payment_methods: {
                 enabled: true,
@@ -29,8 +36,9 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error('Stripe error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to create PaymentIntent' },
+            { error: 'Payment processing failed. Please try again.' },
             { status: 500 }
         );
     }
 }
+

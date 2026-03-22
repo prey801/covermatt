@@ -89,6 +89,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, data: stkData });
     } catch (error: any) {
         console.error('M-PESA Error:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Payment initiation failed. Please try again.' }, { status: 500 });
     }
 }

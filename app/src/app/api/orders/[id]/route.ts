@@ -9,6 +9,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const { id } = await params;
     const { status } = await request.json();
+
+    const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!status || !VALID_STATUSES.includes(status)) {
+        return NextResponse.json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 });
+    }
     
     try {
         await connectToDatabase();
@@ -31,14 +36,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
-        // Mask sensitive PII for public tracking
+        // Mask sensitive PII for public tracking — don't expose address
         const trackingData = {
             id: order._id.toString(),
             status: order.status,
             createdAt: order.createdAt,
-            address: order.address,
             total: order.total,
-            items: order.items,
+            items: order.items.map((item: any) => ({
+                name: item.name,
+                qty: item.qty,
+                price: item.price,
+            })),
         };
 
         return NextResponse.json(trackingData);

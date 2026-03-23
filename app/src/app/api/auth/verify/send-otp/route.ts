@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
         if (!token) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         const decoded = await verifyToken(token);
-        if (!decoded || decoded.role === 'admin') return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        if (!decoded) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
         await connectToDatabase();
         const user = await User.findById(decoded.userId);

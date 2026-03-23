@@ -25,35 +25,36 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const decoded = await verifyToken(token);
+        const decoded = await verifyToken(token) as any;
         
         if (!decoded) {
             return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
         }
 
-        // If it's the admin, return a mock profile since they don't exist in MongoDB
-        if (decoded.role === 'admin') {
-            return NextResponse.json({
-                user: {
-                    id: 'admin-001',
-                    name: 'Store Administrator',
-                    email: decoded.email,
-                    role: 'admin',
-                    phone: '',
-                    addresses: [],
-                    isEmailVerified: true,
-                    isPhoneVerified: true
-                }
-            });
-        }
-
-        // It is a real customer, fetch them from MongoDB securely
+        // It is a real user (could be customer or admin), fetch them from MongoDB securely
         await connectToDatabase();
         
         // Exclude the password using .select('-password')
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = decoded.role === 'admin' 
+            ? await User.findOne({ email: (decoded.email as string).toLowerCase() }).select('-password')
+            : await User.findById(decoded.userId).select('-password');
 
         if (!user) {
+            // If it's the admin and not found in DB, return a mock profile
+            if (decoded.role === 'admin') {
+                return NextResponse.json({
+                    user: {
+                        id: 'admin-001',
+                        name: 'Store Administrator',
+                        email: decoded.email,
+                        role: 'admin',
+                        phone: '',
+                        addresses: [],
+                        isEmailVerified: true,
+                        isPhoneVerified: true
+                    }
+                });
+            }
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
@@ -69,24 +70,35 @@ export async function PUT(request: Request) {
     try {
         // Authenticate user
         let userId = null;
+        let isEmailBased = false;
+        let email = '';
         
         // 1. Try NextAuth
         const session = await auth();
         if (session?.user?.id) {
             userId = session.user.id;
+            if ((session.user as any).role === 'admin') {
+                isEmailBased = true;
+                email = session.user.email!;
+            }
         } else {
             // 2. Try JWT
             const cookieStore = await cookies();
             const token = cookieStore.get('auth_token')?.value;
             if (token) {
-                const decoded = await verifyToken(token);
-                if (decoded && decoded.role !== 'admin') {
-                    userId = decoded.userId;
+                const decoded = await verifyToken(token) as any;
+                if (decoded) {
+                    if (decoded.role === 'admin') {
+                        isEmailBased = true;
+                        email = decoded.email as string;
+                    } else {
+                        userId = decoded.userId;
+                    }
                 }
             }
         }
 
-        if (!userId) {
+        if (!userId && !isEmailBased) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
@@ -101,7 +113,20 @@ export async function PUT(request: Request) {
         }
 
         await connectToDatabase();
-        const user = await User.findById(userId);
+        
+        // Find user: by ID for customers, by Email for admin (since they might not have a record yet)
+        let user = userId ? await User.findById(userId) : await User.findOne({ email: email.toLowerCase() });
+
+        // If admin doesn't exist in DB, create them now with the updated details
+        if (!user && isEmailBased) {
+            user = new User({
+                name: name || 'Store Administrator',
+                email: email.toLowerCase(),
+                role: 'admin',
+                isEmailVerified: true,
+                isPhoneVerified: false
+            });
+        }
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -127,7 +152,7 @@ export async function PUT(request: Request) {
         }
 
         // Return user without password
-        const updatedUser = await User.findById(userId).select('-password');
+        const updatedUser = await User.findById(user._id).select('-password');
         
         return NextResponse.json({ success: true, user: updatedUser });
 

@@ -170,6 +170,48 @@ export default function AccountPage() {
     const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [verifyMessage, setVerifyMessage] = useState('');
 
+    // Profile Edit State
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileForm, setProfileForm] = useState({ firstName: '', lastName: '', phone: '' });
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            const names = (user.name || '').split(' ');
+            setProfileForm({
+                firstName: names[0] || '',
+                lastName: names.slice(1).join(' ') || '',
+                phone: user.phone || ''
+            });
+            setPhoneInput(user.phone || '');
+        }
+    }, [user]);
+
+    const handleProfileUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingProfile(true);
+        try {
+            const res = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `${profileForm.firstName} ${profileForm.lastName}`.trim(),
+                    phone: profileForm.phone
+                })
+            });
+
+            if (!res.ok) throw new Error('Failed to update profile');
+
+            const data = await res.json();
+            setUser(data.user);
+            setIsEditingProfile(false);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
+
     const handleSavePhoneAndSendOtp = async () => {
         if (!phoneInput.trim()) return;
         setIsSavingPhone(true);
@@ -505,22 +547,81 @@ export default function AccountPage() {
                                 <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="font-bold text-gray-900">Personal Information</h3>
-                                        <button className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold hover:underline">
-                                            <Edit3 className="w-3.5 h-3.5" /> Edit
-                                        </button>
+                                        {!isEditingProfile && (
+                                            <button 
+                                                onClick={() => setIsEditingProfile(true)}
+                                                className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold hover:underline"
+                                            >
+                                                <Edit3 className="w-3.5 h-3.5" /> Edit
+                                            </button>
+                                        )}
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                        {[
-                                            { label: 'Full Name', value: user?.name || 'N/A' },
-                                            { label: 'Email', value: user?.email || 'N/A' },
-                                            { label: 'Phone', value: user?.phone || 'N/A' },
-                                        ].map(f => (
-                                            <div key={f.label}>
-                                                <p className="text-xs text-gray-400 font-medium mb-0.5">{f.label}</p>
-                                                <p className="font-semibold text-gray-800">{f.value}</p>
+
+                                    {isEditingProfile ? (
+                                        <form onSubmit={handleProfileUpdate} className="space-y-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">First Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={profileForm.firstName} 
+                                                        onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })} 
+                                                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-all" 
+                                                        required 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Last Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={profileForm.lastName} 
+                                                        onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })} 
+                                                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-all" 
+                                                        required 
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone Number</label>
+                                                    <input 
+                                                        type="tel" 
+                                                        value={profileForm.phone} 
+                                                        onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })} 
+                                                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-emerald-500 transition-all" 
+                                                        placeholder="+254 7XX XXX XXX"
+                                                    />
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                            <div className="flex items-center gap-3 pt-2">
+                                                <button 
+                                                    type="submit" 
+                                                    disabled={isSavingProfile}
+                                                    className="btn-emerald px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50"
+                                                >
+                                                    {isSavingProfile ? 'Saving...' : 'Save Changes'}
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setIsEditingProfile(false)} 
+                                                    className="px-5 py-2 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </form>
+                                    ) : (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                            {[
+                                                { label: 'Full Name', value: user?.name || 'N/A' },
+                                                { label: 'Email', value: user?.email || 'N/A' },
+                                                { label: 'Phone', value: user?.phone || 'N/A' },
+                                            ].map(f => (
+                                                <div key={f.label}>
+                                                    <p className="text-xs text-gray-400 font-medium mb-0.5">{f.label}</p>
+                                                    <p className="font-semibold text-gray-800">{f.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -10,6 +10,7 @@ export default function LiveChatWidget() {
     const [inputValue, setInputValue] = useState('');
     const [sessionId, setSessionId] = useState<string>('');
     const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
     const [hasJoined, setHasJoined] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -17,12 +18,14 @@ export default function LiveChatWidget() {
     useEffect(() => {
         let storedId = localStorage.getItem('chat_session_id');
         let storedName = localStorage.getItem('chat_customer_name');
+        let storedEmail = localStorage.getItem('chat_customer_email');
         
         if (!storedId) {
             storedId = uuidv4();
             localStorage.setItem('chat_session_id', storedId);
         } else if (storedName) {
             setName(storedName);
+            if (storedEmail) setEmail(storedEmail);
             setHasJoined(true);
         }
         setSessionId(storedId);
@@ -68,8 +71,9 @@ export default function LiveChatWidget() {
 
     const handleJoinChat = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name.trim()) return;
+        if (!name.trim() || !email.trim()) return;
         localStorage.setItem('chat_customer_name', name);
+        localStorage.setItem('chat_customer_email', email);
         setHasJoined(true);
     };
 
@@ -94,6 +98,7 @@ export default function LiveChatWidget() {
                 body: JSON.stringify({
                     sessionId,
                     customerName: name,
+                    customerEmail: email,
                     content: tempMessage.content
                 })
             });
@@ -140,13 +145,21 @@ export default function LiveChatWidget() {
                             <User className="w-8 h-8" />
                         </div>
                         <h4 className="font-bold text-gray-900">Welcome to Live Chat!</h4>
-                        <p className="text-sm text-gray-500">Please enter your name to start chatting with one of our support agents.</p>
+                        <p className="text-sm text-gray-500">Please enter your details to start chatting with one of our support agents.</p>
                         <form onSubmit={handleJoinChat} className="w-full mt-4">
                             <input 
                                 type="text" 
                                 placeholder="Your Name" 
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-emerald-500 mb-3 text-black"
+                                required
+                            />
+                            <input 
+                                type="email" 
+                                placeholder="Your Email Address" 
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm outline-none focus:border-emerald-500 mb-3 text-black"
                                 required
                             />

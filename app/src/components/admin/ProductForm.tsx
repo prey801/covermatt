@@ -18,8 +18,7 @@ export interface ProductFormData {
     discount: string;
     image: string;
     badge: string;
-    stockLevel: 'in-stock' | 'low-stock' | 'out-of-stock';
-    inStock: boolean;
+    stockQuantity: string;
     features: string;
     isNew: boolean;
     flashSale: boolean;
@@ -34,7 +33,7 @@ const CATEGORIES = [
 
 const EMPTY: ProductFormData = {
     name: '', brand: '', category: 'Power Tools', price: '', originalPrice: '',
-    discount: '', image: '📦', badge: '', stockLevel: 'in-stock', inStock: true,
+    discount: '', image: '📦', badge: '', stockQuantity: '100',
     features: '', isNew: false, flashSale: false,
 };
 
@@ -63,6 +62,7 @@ export default function ProductForm({ initial, productId }: ProductFormProps) {
                 price: Number(form.price),
                 originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
                 discount: form.discount ? Number(form.discount) : undefined,
+                stockQuantity: Number(form.stockQuantity),
                 features: form.features ? form.features.split('\n').filter(Boolean) : [],
             };
 
@@ -332,20 +332,30 @@ export default function ProductForm({ initial, productId }: ProductFormProps) {
                     <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Inventory & Flags</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Stock Status</label>
-                            <select
-                                value={form.stockLevel}
-                                onChange={e => set('stockLevel', e.target.value as ProductFormData['stockLevel'])}
-                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
-                            >
-                                <option value="in-stock">In Stock</option>
-                                <option value="low-stock">Low Stock</option>
-                                <option value="out-of-stock">Out of Stock</option>
-                            </select>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">Stock Quantity (Amount) *</label>
+                            <div className="flex items-center gap-3">
+                                <input
+                                    required
+                                    type="number"
+                                    min="0"
+                                    value={form.stockQuantity}
+                                    onChange={e => set('stockQuantity', e.target.value)}
+                                    placeholder="100"
+                                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                />
+                                <span className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${
+                                    Number(form.stockQuantity) <= 0 ? 'bg-red-100 text-red-700' :
+                                    Number(form.stockQuantity) <= 40 ? 'bg-amber-100 text-amber-700' :
+                                    'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                    {Number(form.stockQuantity) <= 0 ? 'Out of Stock' :
+                                     Number(form.stockQuantity) <= 40 ? 'Low Stock' : 'In Stock'}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-500 mt-1.5">The status (In Stock / Out of Stock) will be set automatically based on this amount.</p>
                         </div>
                         <div className="flex flex-col gap-3 pt-1">
                             {[
-                                { key: 'inStock', label: 'Available for purchase' },
                                 { key: 'isNew', label: 'Mark as New Arrival' },
                                 { key: 'flashSale', label: 'Include in Flash Sale' },
                             ].map(({ key, label }) => (

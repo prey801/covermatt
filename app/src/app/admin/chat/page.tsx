@@ -154,7 +154,10 @@ export default function AdminChatPage() {
                                         {activeConvo.status}
                                     </span>
                                 </h2>
-                                <p className="text-xs text-gray-500 mt-1">Session ID: {activeConvo.sessionId}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {activeConvo.customerEmail ? `${activeConvo.customerEmail} • ` : ''}
+                                    ID: {activeConvo.sessionId}
+                                </p>
                             </div>
                             <button className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 hover:bg-emerald-50">
                                 <CheckCircle2 className="w-4 h-4" /> Resolve

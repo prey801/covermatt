@@ -64,10 +64,16 @@ export async function POST(request: Request) {
             isNewItem, 
             features, 
             rating, 
-            reviews 
+            reviews,
+            stockQuantity
         } = body;
         
         await connectToDatabase();
+
+        let calculatedStockLevel = 'in-stock';
+        const sq = Number(stockQuantity) || 0;
+        if (sq <= 0) calculatedStockLevel = 'out-of-stock';
+        else if (sq <= 40) calculatedStockLevel = 'low-stock';
         
         const newProduct = await Product.create({
             name, 
@@ -75,7 +81,8 @@ export async function POST(request: Request) {
             price, 
             category, 
             image, 
-            stockLevel: stockLevel || 'in-stock', 
+            stockLevel: calculatedStockLevel,
+            stockQuantity: sq,
             isNewItem: isNewItem || false, 
             features: features || [],
             rating: rating ?? 5.0,

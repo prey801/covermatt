@@ -6,7 +6,7 @@ import Message from '@/models/Message';
 // POST: Customer sends a message
 export async function POST(req: Request) {
     try {
-        const { sessionId, content, customerName } = await req.json();
+        const { sessionId, content, customerName, customerEmail } = await req.json();
 
         if (!sessionId || !content) {
             return NextResponse.json({ error: 'sessionId and content are required' }, { status: 400 });
@@ -21,14 +21,18 @@ export async function POST(req: Request) {
             conversation = await Conversation.create({
                 sessionId,
                 customerName: customerName || 'Guest',
+                customerEmail: customerEmail || undefined,
                 status: 'active'
             });
         } else {
             // Update lastMessageAt
             conversation.lastMessageAt = new Date();
-            // Optional: update name if provided and it was guest before
+            // Optional: update name/email if provided and it was missing before
             if (customerName && conversation.customerName === 'Guest') {
                 conversation.customerName = customerName;
+            }
+            if (customerEmail && !conversation.customerEmail) {
+                conversation.customerEmail = customerEmail;
             }
             await conversation.save();
         }

@@ -23,8 +23,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await request.json();
 
     // Only allow known product fields — prevents injection of _id or other fields
-    const { name, description, price, category, image, rating, reviews, stockLevel, isNewItem, features } = body;
-    const updatePayload = { name, description, price, category, image, rating, reviews, stockLevel, isNewItem, features };
+    const { name, description, price, category, image, rating, reviews, stockQuantity, isNewItem, features } = body;
+    
+    let calculatedStockLevel = undefined;
+    if (stockQuantity !== undefined) {
+        const sq = Number(stockQuantity);
+        if (sq <= 0) calculatedStockLevel = 'out-of-stock';
+        else if (sq <= 40) calculatedStockLevel = 'low-stock';
+        else calculatedStockLevel = 'in-stock';
+    }
+
+    const updatePayload = { name, description, price, category, image, rating, reviews, stockLevel: calculatedStockLevel, stockQuantity, isNewItem, features };
     // Strip undefined fields
     Object.keys(updatePayload).forEach(k => (updatePayload as any)[k] === undefined && delete (updatePayload as any)[k]);
 

@@ -9,6 +9,7 @@ export interface IProduct extends Document {
     rating: number;
     reviews: number;
     stockLevel: 'in-stock' | 'low-stock' | 'out-of-stock';
+    stockQuantity: number;
     isNewItem: boolean;
     features: string[];
     createdAt: Date;
@@ -28,6 +29,7 @@ const ProductSchema = new Schema<IProduct>({
         enum: ['in-stock', 'low-stock', 'out-of-stock'], 
         default: 'in-stock' 
     },
+    stockQuantity: { type: Number, default: 0, min: 0 },
     isNewItem: { type: Boolean, default: false },
     features: { type: [String], default: [] }
 }, {

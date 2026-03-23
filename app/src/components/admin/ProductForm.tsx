@@ -18,6 +18,7 @@ export interface ProductFormData {
     discount: string;
     image: string;
     badge: string;
+    description: string;
     stockQuantity: string;
     features: string;
     isNew: boolean;
@@ -33,7 +34,7 @@ const CATEGORIES = [
 
 const EMPTY: ProductFormData = {
     name: '', brand: '', category: 'Power Tools', price: '', originalPrice: '',
-    discount: '', image: '📦', badge: '', stockQuantity: '100',
+    discount: '', image: '📦', badge: '', description: '', stockQuantity: '100',
     features: '', isNew: false, flashSale: false,
 };
 
@@ -59,6 +60,7 @@ export default function ProductForm({ initial, productId }: ProductFormProps) {
         try {
             const payload = {
                 ...form,
+                description: form.description,
                 price: Number(form.price),
                 originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
                 discount: form.discount ? Number(form.discount) : undefined,
@@ -271,6 +273,18 @@ export default function ProductForm({ initial, productId }: ProductFormProps) {
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Description *</label>
+                        <textarea
+                            required
+                            value={form.description}
+                            onChange={e => set('description', e.target.value)}
+                            placeholder="Describe the product's main features and benefits."
+                            rows={4}
+                            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                        />
+                    </div>
                     </div>
 
                     <div>

@@ -20,9 +20,9 @@ export async function POST(request: Request) {
     const { email, password } = await request.json();
 
     const adminEmail = process.env.ADMIN_EMAIL;
-    const adminHash = process.env.ADMIN_PASSWORD_HASH;
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
-    if (!adminEmail || !adminHash) {
+    if (!adminEmail || !adminPassword) {
         console.error('Admin credentials not properly configured in environment');
         return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
     }
@@ -30,8 +30,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const isMatch = await bcrypt.compare(password, adminHash);
-    if (!isMatch) {
+    if (password !== adminPassword) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 

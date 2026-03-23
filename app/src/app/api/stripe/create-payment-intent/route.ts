@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { headers } from 'next/headers';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
     if (!process.env.STRIPE_SECRET_KEY) {
         return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2023-10-16' as any, // Using stable API version
-    });
     try {
+        const headersList = await headers();
+        const ip = getClientIp(headersList);
+        
+        // Rate limit: 10 intents per hour (60 min) per IP
+        const { limited, retryAfterSeconds } = rateLimit('stripe-intent', ip, 10, 60 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { error: `Too many payment attempts. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
+        }
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: '2023-10-16' as any, // Using stable API version
+        });
+
         const { amount } = await request.json();
 
         // Validate amount
@@ -41,4 +56,3 @@ export async function POST(request: Request) {
         );
     }
 }
-

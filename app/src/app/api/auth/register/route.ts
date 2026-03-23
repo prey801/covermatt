@@ -4,9 +4,22 @@ import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/jwt';
 import { sendWelcomeEmail } from '@/lib/resend';
+import { headers } from 'next/headers';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
     try {
+        // Rate limit: 5 registrations per 15 minutes per IP
+        const headersList = await headers();
+        const ip = getClientIp(headersList);
+        const { limited, retryAfterSeconds } = rateLimit('register', ip, 5, 15 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { success: false, error: `Too many attempts. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
+        }
+
         await connectToDatabase();
         
         const { name, email, password, phone } = await req.json();
@@ -19,10 +32,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'Password must be at least 8 characters' }, { status: 400 });
         }
 
-        // Check if user already exists
+        // Check if user already exists — return generic message to prevent enumeration
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         if (existingUser) {
-            return NextResponse.json({ success: false, error: 'User already exists with this email' }, { status: 409 });
+            // Don't reveal that the email is taken — return same shape as success
+            return NextResponse.json({
+                success: true,
+                message: 'If this email is available, your account has been created. Please check your email.'
+            });
         }
 
         // Hash password
@@ -57,7 +74,7 @@ export async function POST(req: Request) {
             value: token,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            sameSite: 'strict',
             path: '/',
             maxAge: 60 * 60 * 24 // 1 day
         });

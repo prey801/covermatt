@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
+import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/jwt';
+import { auth } from '@/lib/auth';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const authed = await isAdminAuthenticated();
@@ -34,6 +37,37 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         
         if (!order) {
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // --- IDOR Protection Auth Check ---
+        let isAuthorized = false;
+
+        const cookieStore = await cookies();
+        const token = cookieStore.get('auth_token')?.value;
+
+        if (token) {
+            const decoded = await verifyToken(token);
+            if (decoded) {
+                if (decoded.role === 'admin' || decoded.userId === order.userId) {
+                    isAuthorized = true;
+                }
+            }
+        }
+
+        // Fallback to NextAuth session
+        if (!isAuthorized) {
+            const session = await auth();
+            if (session?.user) {
+                const sessionUser = session.user as any;
+                if (sessionUser.role === 'admin' || sessionUser.id === order.userId) {
+                    isAuthorized = true;
+                }
+            }
+        }
+
+        // If not admin and doesn't own the order, deny access
+        if (!isAuthorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         // Mask sensitive PII for public tracking — don't expose address

@@ -5,6 +5,7 @@ import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import crypto from 'crypto';
 import { sendVerificationEmail } from '@/lib/resend';
+import { rateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
     try {
@@ -20,6 +21,16 @@ export async function POST(request: Request) {
         if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
         if (user.isEmailVerified) return NextResponse.json({ message: 'Email already verified' });
+
+        // Rate limit: 3 email verification sends per 15 minutes per user
+        const userId = user._id.toString();
+        const { limited, retryAfterSeconds } = rateLimit('email-verify-send', userId, 3, 15 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { error: `Too many requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
+        }
 
         // Generate a secure verification token
         const verificationToken = crypto.randomBytes(32).toString('hex');

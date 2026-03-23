@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(req: Request) {
     try {
+        const headersList = await headers();
+        const ip = getClientIp(headersList);
+        
+        // Rate limit: 5 requests per hour (60 min) per IP
+        const { limited, retryAfterSeconds } = rateLimit('mpesa-stk', ip, 5, 60 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { success: false, error: `Too many payment requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
+        }
+
         const { phone, amount, reference } = await req.json();
 
         if (!phone || !amount) {

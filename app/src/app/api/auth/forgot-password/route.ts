@@ -3,9 +3,22 @@ import crypto from 'crypto';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import { sendPasswordResetEmail } from '@/lib/resend';
+import { headers } from 'next/headers';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
     try {
+        // Rate limit: 3 requests per 15 minutes per IP
+        const headersList = await headers();
+        const ip = getClientIp(headersList);
+        const { limited, retryAfterSeconds } = rateLimit('forgot-password', ip, 3, 15 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { error: `Too many requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
+        }
+
         const { email } = await request.json();
 
         if (!email) {

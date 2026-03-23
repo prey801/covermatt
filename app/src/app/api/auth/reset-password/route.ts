@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
@@ -10,6 +9,10 @@ export async function POST(request: Request) {
 
         if (!token || !newPassword) {
             return NextResponse.json({ error: 'Token and new password are required' }, { status: 400 });
+        }
+
+        if (newPassword.length < 8) {
+            return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
         }
 
         await connectToDatabase();
@@ -28,10 +31,12 @@ export async function POST(request: Request) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        // Update password and clear reset fields
+        // Update password, clear reset fields, and increment tokenVersion
+        // This invalidates all previously issued JWTs for this user
         user.password = hashedPassword;
         user.resetPasswordToken = undefined;
         user.resetPasswordExpiry = undefined;
+        user.tokenVersion = (user.tokenVersion || 0) + 1;
         await user.save();
 
         return NextResponse.json({ message: 'Password has been reset successfully' });

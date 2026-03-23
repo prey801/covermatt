@@ -18,8 +18,11 @@ export interface IUser extends Document {
     emailVerificationToken?: string;
     phoneOtp?: string;
     otpExpiry?: Date;
+    otpAttempts: number;
+    otpLockedUntil?: Date;
     resetPasswordToken?: string;
     resetPasswordExpiry?: Date;
+    tokenVersion: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -44,8 +47,11 @@ const UserSchema = new Schema<IUser>({
     emailVerificationToken: { type: String, required: false },
     phoneOtp: { type: String, required: false },
     otpExpiry: { type: Date, required: false },
+    otpAttempts: { type: Number, default: 0 },
+    otpLockedUntil: { type: Date, required: false },
     resetPasswordToken: { type: String, required: false },
-    resetPasswordExpiry: { type: Date, required: false }
+    resetPasswordExpiry: { type: Date, required: false },
+    tokenVersion: { type: Number, default: 0 }
 }, {
     timestamps: true,
 });

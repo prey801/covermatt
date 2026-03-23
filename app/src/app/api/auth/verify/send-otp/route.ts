@@ -4,6 +4,8 @@ import { verifyToken } from '@/lib/jwt';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
 import africastalking from 'africastalking';
+import crypto from 'crypto';
+import { rateLimit } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
     const AT = africastalking({
@@ -25,20 +27,27 @@ export async function POST(request: Request) {
         if (user.isPhoneVerified) return NextResponse.json({ message: 'Phone already verified' });
         if (!user.phone) return NextResponse.json({ error: 'No phone number associated with account' }, { status: 400 });
 
-        // Check if an OTP was recently sent (debounce to avoid spam/fees)
-        if (user.otpExpiry && new Date() < user.otpExpiry && user.phoneOtp) {
-            // Already active OTP
-            const timeRemainingRaw = user.otpExpiry.getTime() - new Date().getTime();
-            // If it still has more than 8 minutes left, we reject a new send
-            if (timeRemainingRaw > 8 * 60 * 1000) {
-                 return NextResponse.json({ success: true, message: 'OTP was just sent. Please check your phone.' });
-            }
+        // Rate limit: 3 OTP sends per 15 minutes per user
+        const userId = user._id.toString();
+        const { limited, retryAfterSeconds } = rateLimit('otp-send', userId, 3, 15 * 60 * 1000);
+        if (limited) {
+            return NextResponse.json(
+                { error: `Too many OTP requests. Try again in ${Math.ceil(retryAfterSeconds / 60)} minutes.` },
+                { status: 429 }
+            );
         }
 
-        // Generate 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        // Check if an active OTP exists and hasn't expired — reject to prevent flooding
+        if (user.otpExpiry && new Date() < user.otpExpiry && user.phoneOtp) {
+            return NextResponse.json({ success: true, message: 'OTP was already sent. Please check your phone or wait for it to expire.' });
+        }
+
+        // Generate cryptographically secure 6-digit OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
         user.phoneOtp = otp;
         user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minute expiry
+        user.otpAttempts = 0; // Reset attempts for new OTP
+        user.otpLockedUntil = undefined; // Clear any lockout
         await user.save();
 
         // Format Kenyan Phone Number for Africa's Talking (e.g., from 0700 to +254700)

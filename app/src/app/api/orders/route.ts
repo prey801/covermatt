@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Order from '@/models/Order';
+import Product from '@/models/Product';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import { sendOrderConfirmationEmail, sendAdminNewOrderAlert } from '@/lib/resend';
@@ -84,6 +85,13 @@ export async function POST(req: Request) {
     try {
         await connectToDatabase();
         const orderData = await req.json();
+
+        // Destructure only explicitly allowed fields from the client to prevent Mass Assignment
+        const { customer, address, items, paymentMethod } = orderData;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return NextResponse.json({ success: false, error: 'Order must contain items' }, { status: 400 });
+        }
         
         // Check if user is logged in to link the order to their account
         const cookieStore = await cookies();
@@ -96,13 +104,39 @@ export async function POST(req: Request) {
                 userId = decoded.userId;
             }
         }
+
+        // Re-calculate the total on the server to prevent cart-tampering (Mass Assignment)
+        const productIds = items.map(item => item.id);
+        const dbProducts = await Product.find({ _id: { $in: productIds } }).lean() as any[];
+
+        let computedTotal = 0;
+        const validatedItems = items.map(item => {
+            const dbProduct = dbProducts.find(p => p._id.toString() === item.id);
+            if (!dbProduct) {
+                throw new Error(`Product ${item.id} not found`);
+            }
+            computedTotal += dbProduct.price * item.qty;
+            // Build the item representation using trusted server-side data (like price)
+            return {
+                id: item.id,
+                name: dbProduct.name,
+                price: dbProduct.price,
+                qty: item.qty,
+                image: dbProduct.image,
+                category: dbProduct.category
+            };
+        });
         
-        // Create MongoDB Order
+        // Create MongoDB Order — status and paymentStatus are strictly controlled
         const newOrder = await Order.create({
-            ...orderData,
+            customer,
+            address,
+            items: validatedItems,
+            paymentMethod,
+            total: computedTotal,
             userId, // Links order to customer account if present
-            status: orderData.status || 'pending',
-            paymentStatus: orderData.paymentStatus || 'pending'
+            status: 'pending',
+            paymentStatus: 'pending'
         });
 
         const orderId = newOrder._id.toString();
@@ -146,7 +180,6 @@ export async function POST(req: Request) {
         });
     } catch (error: any) {
         console.error('Failed to save order:', error);
-        return NextResponse.json({ success: false, error: 'Failed to create order' }, { status: 500 });
+        return NextResponse.json({ success: false, error: error.message || 'Failed to create order' }, { status: 500 });
     }
 }
-

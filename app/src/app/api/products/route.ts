@@ -53,12 +53,33 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         
+        // Prevent Mass Assignment: Explicitly destructure only allowed fields
+        const { 
+            name, 
+            description, 
+            price, 
+            category, 
+            image, 
+            stockLevel, 
+            isNewItem, 
+            features, 
+            rating, 
+            reviews 
+        } = body;
+        
         await connectToDatabase();
         
         const newProduct = await Product.create({
-            ...body,
-            rating: body.rating ?? 5.0,
-            reviews: body.reviews ?? 0,
+            name, 
+            description, 
+            price, 
+            category, 
+            image, 
+            stockLevel: stockLevel || 'in-stock', 
+            isNewItem: isNewItem || false, 
+            features: features || [],
+            rating: rating ?? 5.0,
+            reviews: reviews ?? 0,
         });
 
         return NextResponse.json({

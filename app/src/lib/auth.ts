@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Facebook from 'next-auth/providers/facebook';
 import connectToDatabase from './mongodb';
 import User from '@/models/User';
 import { sendWelcomeEmail } from './resend';
@@ -11,6 +12,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         }),
+        Facebook({
+            clientId: process.env.FACEBOOK_CLIENT_ID!,
+            clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+        }),
     ],
 
     session: { strategy: 'jwt' },
@@ -20,7 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     callbacks: {
         // Runs after Google successfully authenticates the user
         async signIn({ user, account }) {
-            if (account?.provider !== 'google') return true;
+            if (account?.provider !== 'google' && account?.provider !== 'facebook') return true;
 
             try {
                 await connectToDatabase();
@@ -30,8 +35,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                 if (existingUser) {
                     // Link Google account if not already linked
-                    if (!existingUser.googleId) {
+                    if (account?.provider === 'google' && !existingUser.googleId) {
                         existingUser.googleId = account.providerAccountId;
+                        existingUser.isEmailVerified = true;
+                        await existingUser.save();
+                    } else if (account?.provider === 'facebook' && !existingUser.facebookId) {
+                        existingUser.facebookId = account.providerAccountId;
                         existingUser.isEmailVerified = true;
                         await existingUser.save();
                     }
@@ -44,13 +53,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         return '/login?error=account_not_found';
                     }
 
-                    // Create new user from Google profile
+                    // Create new user from OAuth profile
                     const newUser = await User.create({
                         name: user.name ?? email.split('@')[0],
                         email,
-                        googleId: account.providerAccountId,
+                        googleId: account?.provider === 'google' ? account.providerAccountId : undefined,
+                        facebookId: account?.provider === 'facebook' ? account.providerAccountId : undefined,
                         role: 'customer',
-                        isEmailVerified: true, // Google already verified the email
+                        isEmailVerified: true, // OAuth already verified the email
                     });
 
                     // Send welcome email (fire-and-forget)

@@ -45,6 +45,7 @@ export default function RegisterPage() {
         setIsGoogleLoading(true);
         setError('');
         try {
+            document.cookie = "auth_intent=register; path=/; max-age=120";
             await signIn('google', { callbackUrl: '/account' });
         } catch {
             setError('Google sign-in failed. Please try again.');

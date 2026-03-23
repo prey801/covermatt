@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from 'jose';
-import crypto from 'crypto';
 
 // Enforce JWT_SECRET at startup — no fallback
 const secretKey = process.env.JWT_SECRET;

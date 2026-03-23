@@ -3,9 +3,21 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/jwt';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
+import { auth } from '@/lib/auth';
 
 export async function GET(request: Request) {
     try {
+        // 1. Try NextAuth Session (Google Login)
+        const session = await auth();
+        if (session?.user?.email) {
+            await connectToDatabase();
+            const user = await User.findOne({ email: session.user.email.toLowerCase() }).select('-password').lean();
+            if (user) {
+                return NextResponse.json({ user: { ...user, id: user._id?.toString() } });
+            }
+        }
+
+        // 2. Fallback to Custom JWT (Email Login)
         const cookieStore = await cookies();
         const token = cookieStore.get('auth_token')?.value;
 

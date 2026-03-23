@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google';
 import connectToDatabase from './mongodb';
 import User from '@/models/User';
 import { sendWelcomeEmail } from './resend';
+import { cookies } from 'next/headers';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
@@ -35,6 +36,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         await existingUser.save();
                     }
                 } else {
+                    // Check auth intent
+                    const cookieStore = await cookies();
+                    const intent = cookieStore.get('auth_intent')?.value;
+                    
+                    if (intent === 'login') {
+                        return '/login?error=account_not_found';
+                    }
+
                     // Create new user from Google profile
                     const newUser = await User.create({
                         name: user.name ?? email.split('@')[0],

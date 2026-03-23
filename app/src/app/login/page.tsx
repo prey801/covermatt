@@ -1,11 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { ShoppingBag, Mail, Lock, Eye, EyeOff, ArrowRight, Phone } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginContent() {
     const [showPassword, setShowPassword] = useState(false);
     const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
     const [email, setEmail] = useState('');
@@ -14,11 +14,22 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const errorParam = searchParams.get('error');
+        if (errorParam === 'account_not_found') {
+            setError('Account not found. Please create an account first.');
+        } else if (errorParam) {
+            setError('Authentication failed. Please try again.');
+        }
+    }, [searchParams]);
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
         setError('');
         try {
+            document.cookie = "auth_intent=login; path=/; max-age=120";
             await signIn('google', { callbackUrl: '/account' });
         } catch {
             setError('Google sign-in failed. Please try again.');
@@ -216,5 +227,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

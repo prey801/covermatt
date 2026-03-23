@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Facebook from 'next-auth/providers/facebook';
 import connectToDatabase from './mongodb';
@@ -6,7 +6,7 @@ import User from '@/models/User';
 import { sendWelcomeEmail } from './resend';
 import { cookies } from 'next/headers';
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authConfig: NextAuthConfig = {
     providers: [
         Google({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -18,7 +18,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
 
-    session: { strategy: 'jwt' },
+    session: { strategy: 'jwt' as const },
 
     secret: process.env.NEXTAUTH_SECRET,
 
@@ -77,7 +77,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         },
 
         // Enrich the JWT token with our DB user ID and role
-        async jwt({ token, account }) {
+        async jwt({ token }) {
             // Always ensure userId is in the token — runs on first sign-in AND every refresh
             if (!token.userId && token.email) {
                 try {
@@ -87,6 +87,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         token.userId = dbUser._id.toString();
                         token.role = dbUser.role;
                         token.name = dbUser.name;
+                        token.phone = dbUser.phone;
+                        token.addresses = dbUser.addresses;
                     }
                 } catch { /* non-fatal */ }
             }
@@ -98,6 +100,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (session.user) {
                 (session.user as any).id = token.userId as string;
                 (session.user as any).role = token.role as string;
+                (session.user as any).phone = token.phone as string;
+                (session.user as any).addresses = token.addresses;
             }
             return session;
         },
@@ -107,4 +111,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         signIn: '/login',
         error: '/login',
     },
-});
+};
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

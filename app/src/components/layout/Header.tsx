@@ -88,11 +88,7 @@ export default function Header() {
                             <Truck className="w-3.5 h-3.5" /> Track Order
                         </Link>
                         <Link href="/support/faqs" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Help & FAQs</Link>
-                        {user ? (
-                            <Link href="/account" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Hi, {user.name.split(' ')[0]}</Link>
-                        ) : (
-                            <Link href="/login" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Login / Register</Link>
-                        )}
+                        <Link href="/login" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Login / Register</Link>
                     </div>
                 </div>
             </div>
@@ -158,7 +154,9 @@ export default function Header() {
                     <div className="flex items-center gap-1 shrink-0">
                         <Link href={user ? '/account' : '/login'} className="hidden sm:flex flex-col items-center p-2 rounded-xl hover:bg-gray-50 transition-colors group" aria-label="Account">
                             <User className="w-5 h-5 text-gray-500 group-hover:text-emerald-500 transition-colors" />
-                            <span className="text-[9px] text-gray-400 font-medium mt-0.5">{user ? 'Account' : 'Login'}</span>
+                            <span className="text-[9px] text-gray-400 font-medium mt-0.5 truncate max-w-[50px] text-center">
+                                {user ? user.name.split(' ')[0] : 'Login'}
+                            </span>
                         </Link>
 
                         <Link href="/wishlist" className="hidden sm:flex flex-col items-center p-2 rounded-xl hover:bg-gray-50 transition-colors group relative" aria-label="Wishlist">

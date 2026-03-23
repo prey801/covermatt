@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-    LayoutDashboard, Package, ShoppingCart, LogOut, Store, ChevronRight, Warehouse
+    LayoutDashboard, Package, ShoppingCart, LogOut, Store, ChevronRight, Warehouse, MessageCircle
 } from 'lucide-react';
 
 const NAV = [
@@ -10,6 +10,7 @@ const NAV = [
     { href: '/admin/products', label: 'Products', icon: Package },
     { href: '/admin/stock', label: 'Stock', icon: Warehouse },
     { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+    { href: '/admin/chat', label: 'Live Chat', icon: MessageCircle },
 ];
 
 export default function AdminSidebar() {

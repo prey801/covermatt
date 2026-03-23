@@ -83,7 +83,12 @@ export default function ContactPage() {
                             <MessageCircle className="w-8 h-8 text-emerald-500 mb-3" />
                             <h3 className="font-bold text-gray-900 mb-1">Live Chat</h3>
                             <p className="text-sm text-gray-500 mb-4">Chat with our support agents in real-time for quick assistance.</p>
-                            <button className="btn-emerald w-full py-3 rounded-xl text-sm font-bold">Start Live Chat</button>
+                            <button 
+                                onClick={() => window.dispatchEvent(new Event('open-live-chat'))}
+                                className="btn-emerald w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center text-center"
+                            >
+                                Start Live Chat
+                            </button>
                         </div>
                     </div>
                 </div>

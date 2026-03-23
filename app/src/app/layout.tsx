@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import CartProvider from "@/context/CartContext";
 import AuthProvider from "@/context/AuthProvider";
 import ToastContainer from "@/components/ui/ToastContainer";
+import LiveChatWidget from "@/components/ui/LiveChatWidget";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({
             <main>{children}</main>
             <Footer />
             <ToastContainer />
+            <LiveChatWidget />
             <Analytics />
           </CartProvider>
         </AuthProvider>

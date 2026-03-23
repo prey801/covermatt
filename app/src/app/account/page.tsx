@@ -145,6 +145,7 @@ export default function AccountPage() {
                 }
                 const profileData = await profileRes.json();
                 setUser(profileData.user);
+                setAddresses(profileData.user.addresses || []);
 
                 // 2. Fetch User Orders
                 const ordersRes = await fetch('/api/orders');
@@ -189,17 +190,7 @@ export default function AccountPage() {
     // Address State
     const [editingId, setEditingId] = useState<number | null>(null);
     const [isAddingNew, setIsAddingNew] = useState(false);
-    const [addresses, setAddresses] = useState([
-        {
-            id: 1,
-            isDefault: true,
-            name: 'John Doe',
-            phone: '+254 700 XXX XXX',
-            street: 'Moi Avenue, Nairobi CBD',
-            city: 'Nairobi',
-            zip: '00100'
-        }
-    ]);
+    const [addresses, setAddresses] = useState<any[]>([]);
     const [formData, setFormData] = useState({ name: '', phone: '', street: '', city: '', zip: '' });
 
     const handleAddressSave = (e: React.FormEvent, id?: number) => {
@@ -337,9 +328,9 @@ export default function AccountPage() {
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                     {[
                                         { label: 'Total Orders', value: orders.length.toString(), icon: <Package className="w-5 h-5 text-emerald-500" /> },
-                                        { label: 'Wishlist Items', value: '8', icon: <Heart className="w-5 h-5 text-red-500" /> },
-                                        { label: 'Reward Points', value: '2,450', icon: <Star className="w-5 h-5 text-amber-500" /> },
-                                        { label: 'Saved Addresses', value: '3', icon: <MapPin className="w-5 h-5 text-blue-500" /> },
+                                        { label: 'Wishlist Items', value: (user?.wishlist?.length || 0).toString(), icon: <Heart className="w-5 h-5 text-red-500" /> },
+                                        { label: 'Reward Points', value: (user?.rewardPoints || 0).toLocaleString(), icon: <Star className="w-5 h-5 text-amber-500" /> },
+                                        { label: 'Saved Addresses', value: addresses.length.toString(), icon: <MapPin className="w-5 h-5 text-blue-500" /> },
                                     ].map(s => (
                                         <div key={s.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                                             <div className="flex items-center justify-between mb-2">{s.icon}</div>
@@ -618,6 +609,14 @@ export default function AccountPage() {
                                         )}
                                     </div>
                                 ))}
+
+                                {addresses.length === 0 && !isAddingNew && (
+                                    <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 mb-4">
+                                        <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                        <p className="text-sm font-semibold text-gray-700">No saved addresses</p>
+                                        <p className="text-xs text-gray-400 mt-1">Add an address to speed up checkout</p>
+                                    </div>
+                                )}
 
                                 {isAddingNew ? (
                                     <div className="bg-white rounded-2xl p-6 border border-emerald-500 shadow-emerald-50 shadow-sm relative">

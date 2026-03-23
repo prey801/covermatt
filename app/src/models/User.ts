@@ -13,6 +13,8 @@ export interface IUser extends Document {
         city: string;
         zip: string;
     }[];
+    wishlist: mongoose.Types.ObjectId[];
+    rewardPoints: number;
     isEmailVerified: boolean;
     isPhoneVerified: boolean;
     emailVerificationToken?: string;
@@ -42,6 +44,8 @@ const UserSchema = new Schema<IUser>({
     role: { type: String, enum: ['customer', 'admin'], default: 'customer' },
     phone: { type: String, required: false },
     addresses: { type: [AddressSchema], default: [] },
+    wishlist: { type: [{ type: Schema.Types.ObjectId, ref: 'Product' }], default: [] },
+    rewardPoints: { type: Number, default: 0 },
     isEmailVerified: { type: Boolean, default: false },
     isPhoneVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, required: false },

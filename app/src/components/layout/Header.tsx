@@ -32,6 +32,22 @@ export default function Header() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFocused, setSearchFocused] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await fetch('/api/user/profile');
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser(data.user);
+                }
+            } catch (err) {
+                console.error('Failed to fetch user in Header', err);
+            }
+        };
+        fetchUser();
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -72,7 +88,11 @@ export default function Header() {
                             <Truck className="w-3.5 h-3.5" /> Track Order
                         </Link>
                         <Link href="/support/faqs" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Help & FAQs</Link>
-                        <Link href="/login" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Login / Register</Link>
+                        {user ? (
+                            <Link href="/account" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Hi, {user.name.split(' ')[0]}</Link>
+                        ) : (
+                            <Link href="/login" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Login / Register</Link>
+                        )}
                     </div>
                 </div>
             </div>
@@ -136,15 +156,17 @@ export default function Header() {
 
                     {/* Right Icons */}
                     <div className="flex items-center gap-1 shrink-0">
-                        <Link href="/account" className="hidden sm:flex flex-col items-center p-2 rounded-xl hover:bg-gray-50 transition-colors group" aria-label="Account">
+                        <Link href={user ? '/account' : '/login'} className="hidden sm:flex flex-col items-center p-2 rounded-xl hover:bg-gray-50 transition-colors group" aria-label="Account">
                             <User className="w-5 h-5 text-gray-500 group-hover:text-emerald-500 transition-colors" />
-                            <span className="text-[9px] text-gray-400 font-medium mt-0.5">Account</span>
+                            <span className="text-[9px] text-gray-400 font-medium mt-0.5">{user ? 'Account' : 'Login'}</span>
                         </Link>
 
                         <Link href="/wishlist" className="hidden sm:flex flex-col items-center p-2 rounded-xl hover:bg-gray-50 transition-colors group relative" aria-label="Wishlist">
                             <div className="relative">
                                 <Heart className="w-5 h-5 text-gray-500 group-hover:text-red-500 transition-colors" />
-                                <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">3</span>
+                                {user?.wishlist?.length > 0 && (
+                                    <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{user.wishlist.length}</span>
+                                )}
                             </div>
                             <span className="text-[9px] text-gray-400 font-medium mt-0.5">Wishlist</span>
                         </Link>
@@ -276,14 +298,17 @@ export default function Header() {
 
                         {/* Bottom */}
                         <div className="p-4 border-t border-gray-100 space-y-1.5">
-                            <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
-                                <User className="w-4 h-4" /> My Account
-                            </Link>
+                            {user ? (
+                                <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+                                    <User className="w-4 h-4" /> My Account
+                                </Link>
+                            ) : (
+                                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+                                    <User className="w-4 h-4" /> Login / Register
+                                </Link>
+                            )}
                             <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
-                                <Heart className="w-4 h-4" /> Wishlist
-                            </Link>
-                            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
-                                <User className="w-4 h-4" /> Login / Register
+                                <Heart className="w-4 h-4" /> Wishlist {user?.wishlist?.length > 0 && `(${user.wishlist.length})`}
                             </Link>
                             <Link href="/support/contact" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
                                 <Phone className="w-4 h-4" /> +254 700 000 000

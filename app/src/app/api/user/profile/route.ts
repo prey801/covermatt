@@ -64,3 +64,68 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+export async function PUT(request: Request) {
+    try {
+        // Authenticate user
+        let userId = null;
+        
+        // 1. Try NextAuth
+        const session = await auth();
+        if (session?.user?.id) {
+            userId = session.user.id;
+        } else {
+            // 2. Try JWT
+            const cookieStore = await cookies();
+            const token = cookieStore.get('auth_token')?.value;
+            if (token) {
+                const decoded = await verifyToken(token);
+                if (decoded && decoded.role !== 'admin') {
+                    userId = decoded.userId;
+                }
+            }
+        }
+
+        if (!userId) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { phone, name } = body;
+
+        await connectToDatabase();
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
+
+        let updated = false;
+
+        if (phone && phone !== user.phone) {
+            user.phone = phone;
+            user.isPhoneVerified = false; // Require re-verification if changed
+            user.phoneOtp = undefined;
+            user.otpExpiry = undefined;
+            updated = true;
+        }
+
+        if (name && name !== user.name) {
+            user.name = name;
+            updated = true;
+        }
+
+        if (updated) {
+            await user.save();
+        }
+
+        // Return user without password
+        const updatedUser = await User.findById(userId).select('-password');
+        
+        return NextResponse.json({ success: true, user: updatedUser });
+
+    } catch (error: any) {
+        console.error('Profile Update Error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}

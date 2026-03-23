@@ -162,29 +162,107 @@ export default function AccountPage() {
         fetchProfileData();
     }, [router]);
     
+    // Inline OTP & Phone State
+    const [showOtpInput, setShowOtpInput] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [phoneInput, setPhoneInput] = useState('');
+    const [isSavingPhone, setIsSavingPhone] = useState(false);
+    const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [verifyMessage, setVerifyMessage] = useState('');
+
+    const handleSavePhoneAndSendOtp = async () => {
+        if (!phoneInput.trim()) return;
+        setIsSavingPhone(true);
+        setVerifyMessage('');
+        try {
+            // 1. Save Phone Number
+            const profileRes = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phoneInput })
+            });
+
+            if (!profileRes.ok) throw new Error('Failed to update phone number');
+
+            // Update local user state
+            const updatedProfile = await profileRes.json();
+            setUser(updatedProfile.user);
+
+            // 2. Trigger OTP
+            await handleResendVerification('phone', true); // Silent toast wrapper
+        } catch (err: any) {
+            setVerifyStatus('error');
+            setVerifyMessage(err.message || 'An error occurred while saving the phone number.');
+        } finally {
+            setIsSavingPhone(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (otpCode.length !== 6) return;
+        setVerifyStatus('loading');
+        setVerifyMessage('');
+
+        try {
+            const res = await fetch('/api/auth/verify/otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp: otpCode }),
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                setVerifyStatus('success');
+                setVerifyMessage('Phone verified successfully!');
+                setUser((prev: any) => ({ ...prev, isPhoneVerified: true }));
+                setShowOtpInput(false);
+            } else {
+                setVerifyStatus('error');
+                setVerifyMessage(data.error || 'Invalid OTP code');
+            }
+        } catch (err) {
+            setVerifyStatus('error');
+            setVerifyMessage('Failed to verify OTP. Please try again.');
+        } finally {
+            setTimeout(() => setVerifyStatus('idle'), 5000); // Clear messages after 5s
+        }
+    };
+
     // Verification Handlers
     const [resendStatus, setResendStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [resendMessage, setResendMessage] = useState('');
 
-    const handleResendVerification = async (type: 'email' | 'phone') => {
-        setResendStatus('loading');
-        setResendMessage('');
+    const handleResendVerification = async (type: 'email' | 'phone', silentInit = false) => {
+        if (!silentInit) {
+            setResendStatus('loading');
+            setResendMessage('');
+        }
         try {
             const endpoint = type === 'email' ? '/api/auth/verify/send-email' : '/api/auth/verify/send-otp';
             const res = await fetch(endpoint, { method: 'POST' });
             const data = await res.json();
             if (res.ok) {
-                setResendStatus('success');
-                setResendMessage(type === 'email' ? 'Verification link sent to your email.' : 'OTP sent to your phone.');
+                if (type === 'phone') setShowOtpInput(true);
+                if (!silentInit) {
+                    setResendStatus('success');
+                    setResendMessage(data.message || (type === 'email' ? 'Verification link sent.' : 'OTP sent to your phone.'));
+                }
             } else {
-                setResendStatus('error');
-                setResendMessage(data.error || 'Failed to send verification.');
+                if (!silentInit) {
+                    setResendStatus('error');
+                    setResendMessage(data.error || 'Failed to send verification.');
+                } else {
+                    setVerifyStatus('error');
+                    setVerifyMessage(data.error || 'Failed to send verification.');
+                }
             }
         } catch (e) {
-            setResendStatus('error');
-            setResendMessage('An unexpected error occurred.');
+            if (!silentInit) {
+                setResendStatus('error');
+                setResendMessage('An unexpected error occurred.');
+            }
         }
-        setTimeout(() => setResendStatus('idle'), 5000);
+        if (!silentInit) setTimeout(() => setResendStatus('idle'), 5000);
     };
 
     // Address State
@@ -308,13 +386,63 @@ export default function AccountPage() {
                                                 <h3 className="font-bold text-orange-900">Verify your phone number</h3>
                                                 <p className="text-sm text-orange-700 mt-0.5">Please verify your phone via OTP to enable Delivery SMS tracking.</p>
                                             </div>
+                                            {showOtpInput ? (
+                                                <div className="w-full sm:w-auto mt-3 mx-auto">
+                                                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                                                        <input 
+                                                            type="text" 
+                                                            maxLength={6}
+                                                            value={otpCode} 
+                                                            onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))} 
+                                                            placeholder="••••••" 
+                                                            className="w-full sm:w-32 border border-orange-200 rounded-xl px-3 py-2 text-center text-lg tracking-[0.25em] font-bold outline-none focus:border-orange-500 font-mono" 
+                                                        />
+                                                        <button 
+                                                            onClick={handleVerifyOtp} 
+                                                            disabled={verifyStatus === 'loading' || otpCode.length !== 6}
+                                                            className="w-full sm:w-auto whitespace-nowrap px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                                                        >
+                                                            {verifyStatus === 'loading' ? 'Verifying...' : 'Verify'}
+                                                        </button>
+                                                    </div>
+                                                    {verifyMessage && (
+                                                        <p className={`text-xs mt-2 font-medium ${verifyStatus === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                            {verifyMessage}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : user.phone ? (
+                                                <button 
+                                                    onClick={() => handleResendVerification('phone')} 
+                                                    disabled={resendStatus === 'loading'}
+                                                    className="whitespace-nowrap px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors shrink-0 disabled:opacity-50 flex items-center gap-2"
+                                                >
+                                                    {resendStatus === 'loading' ? 'Sending...' : <><Send className="w-4 h-4" /> Send OTP</>}
+                                                </button>
+                                            ) : (
+                                                <div className="w-full sm:w-auto mt-3 flex flex-col sm:flex-row items-center gap-2 relative">
+                                                    <input 
+                                                        type="tel"
+                                                        placeholder="+254 7XX XXX XXX"
+                                                        value={phoneInput}
+                                                        onChange={e => setPhoneInput(e.target.value)}
+                                                        className="w-full sm:w-48 border border-orange-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-orange-500"
+                                                    />
+                                                    <button 
+                                                        onClick={handleSavePhoneAndSendOtp} 
+                                                        disabled={isSavingPhone || !phoneInput}
+                                                        className="w-full sm:w-auto whitespace-nowrap px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                                                    >
+                                                        {isSavingPhone ? 'Saving...' : 'Add & Verify'}
+                                                    </button>
+                                                    {verifyMessage && (
+                                                        <p className={`absolute -bottom-6 left-0 text-xs font-medium ${verifyStatus === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                            {verifyMessage}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
-                                        <button 
-                                            onClick={() => router.push('/register')} 
-                                            className="whitespace-nowrap px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
-                                        >
-                                            Verify Phone
-                                        </button>
                                     </div>
                                 )}
 

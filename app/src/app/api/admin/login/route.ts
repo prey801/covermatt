@@ -26,7 +26,6 @@ export async function POST(request: Request) {
         console.error('Admin credentials not properly configured in environment');
         return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
     }
-
     if (email !== adminEmail) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }

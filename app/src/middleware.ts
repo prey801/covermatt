@@ -13,7 +13,12 @@ function getAllowedOrigins(): string[] {
     const list = origins.split(',').map(o => o.trim()).filter(Boolean);
     // Always allow localhost in development
     if (process.env.NODE_ENV !== 'production') {
-        list.push('http://localhost:3000', 'http://127.0.0.1:3000');
+        list.push(
+            'http://localhost:3000', 
+            'http://127.0.0.1:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001'
+        );
     }
     return list;
 }

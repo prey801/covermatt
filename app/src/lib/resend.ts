@@ -27,7 +27,7 @@ function emailWrapper(content: string): string {
               <tr>
                 <td style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);padding:32px 40px;text-align:center;">
                   <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;letter-spacing:-0.5px;">Covermatt</h1>
-                  <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Premium Car Seat Covers · covermatt.co.ke</p>
+                  <p style="margin:4px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Premium Hardware & Electricals · covermatt.co.ke</p>
                 </td>
               </tr>
               <!-- Body -->
@@ -66,10 +66,10 @@ export async function sendWelcomeEmail(to: string, name: string) {
         html: emailWrapper(`
             <h2 style="margin:0 0 12px;color:#111827;font-size:24px;font-weight:700;">Welcome aboard, ${name}! 🎉</h2>
             <p style="color:#4b5563;font-size:15px;line-height:1.7;margin:0 0 16px;">
-                We're so glad you joined Covermatt — Kenya's home for <strong>premium car seat covers</strong> that combine style, durability, and comfort.
+                We're so glad you joined Covermatt — Kenya's home for <strong>premium hardware and electrical supplies</strong>.
             </p>
             <p style="color:#4b5563;font-size:15px;line-height:1.7;margin:0 0 24px;">
-                Explore our full catalogue and find the perfect fit for your vehicle. Your next great drive starts here.
+                Explore our full catalogue and find exactly what you need for your next project.
             </p>
             ${ctaButton(`${APP_URL}`, 'Shop Now')}
             <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;"/>

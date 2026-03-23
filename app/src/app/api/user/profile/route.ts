@@ -91,7 +91,14 @@ export async function PUT(request: Request) {
         }
 
         const body = await request.json();
-        const { phone, name } = body;
+        let { phone, name } = body;
+
+        // Normalize Kenyan phone numbers from 07xxx to +2547xxx
+        if (phone) {
+            phone = phone.trim();
+            if (phone.startsWith('0')) phone = '+254' + phone.substring(1);
+            else if (phone.startsWith('254')) phone = '+' + phone;
+        }
 
         await connectToDatabase();
         const user = await User.findById(userId);

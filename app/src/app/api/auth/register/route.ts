@@ -22,7 +22,14 @@ export async function POST(req: Request) {
 
         await connectToDatabase();
         
-        const { name, email, password, phone } = await req.json();
+        let { name, email, password, phone } = await req.json();
+
+        // Normalize Kenyan phone numbers from 07xxx to +2547xxx
+        if (phone) {
+            phone = phone.trim();
+            if (phone.startsWith('0')) phone = '+254' + phone.substring(1);
+            else if (phone.startsWith('254')) phone = '+' + phone;
+        }
 
         if (!name || !email || !password) {
             return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });

@@ -14,17 +14,31 @@ function LoginContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [isFacebookLoading, setIsFacebookLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
     const router = useRouter();
     const searchParams = useSearchParams();
 
     useEffect(() => {
+        // 1. Handle error params
         const errorParam = searchParams.get('error');
         if (errorParam === 'account_not_found') {
             setError('Account not found. Please create an account first.');
         } else if (errorParam) {
             setError('Authentication failed. Please try again.');
         }
-    }, [searchParams]);
+
+        // 2. Auto-redirect if already logged in
+        const checkSession = async () => {
+            try {
+                const res = await fetch('/api/user/profile');
+                const data = await res.json();
+                if (data.user) {
+                    router.push(data.user.role === 'admin' ? '/admin' : '/account');
+                }
+            } catch { /* Ignore */ }
+        };
+        checkSession();
+    }, [searchParams, router]);
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
@@ -46,7 +60,7 @@ function LoginContent() {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, remember: rememberMe })
             });
 
             const data = await res.json();
@@ -188,8 +202,14 @@ function LoginContent() {
                         )}
 
                         <div className="flex items-center gap-2">
-                            <input type="checkbox" id="remember" className="accent-emerald-500 w-4 h-4" />
-                            <label htmlFor="remember" className="text-sm text-gray-500">Remember me</label>
+                            <input 
+                                type="checkbox" 
+                                id="remember" 
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="accent-emerald-500 w-4 h-4 rounded cursor-pointer" 
+                            />
+                            <label htmlFor="remember" className="text-sm text-gray-500 cursor-pointer select-none">Remember me</label>
                         </div>
 
                         <button type="submit" disabled={isLoading} className="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50">

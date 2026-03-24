@@ -60,6 +60,19 @@ export default function RegisterPage() {
 
     const strength = STRENGTH_CONFIG[password.length === 0 ? 0 : score];
 
+    React.useEffect(() => {
+        const checkSession = async () => {
+            try {
+                const res = await fetch('/api/user/profile');
+                const data = await res.json();
+                if (data.user) {
+                    router.push(data.user.role === 'admin' ? '/admin' : '/account');
+                }
+            } catch { /* Ignore */ }
+        };
+        checkSession();
+    }, [router]);
+
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');

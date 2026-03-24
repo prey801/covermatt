@@ -30,7 +30,6 @@ function LoginContent() {
         setIsGoogleLoading(true);
         setError('');
         try {
-            document.cookie = "auth_intent=login; path=/; max-age=120";
             await signIn('google', { callbackUrl: '/account' });
         } catch {
             setError('Google sign-in failed. Please try again.');
@@ -210,7 +209,6 @@ function LoginContent() {
                                 setIsFacebookLoading(true);
                                 setError('');
                                 try {
-                                    document.cookie = "auth_intent=login; path=/; max-age=120";
                                     await signIn('facebook', { callbackUrl: '/account' });
                                 } catch {
                                     setError('Facebook sign-in failed. Please try again.');

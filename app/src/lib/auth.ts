@@ -45,14 +45,6 @@ export const authConfig: NextAuthConfig = {
                         await existingUser.save();
                     }
                 } else {
-                    // Check auth intent
-                    const cookieStore = await cookies();
-                    const intent = cookieStore.get('auth_intent')?.value;
-                    
-                    if (intent === 'login') {
-                        return '/login?error=account_not_found';
-                    }
-
                     // Create new user from OAuth profile
                     const newUser = await User.create({
                         name: user.name ?? email.split('@')[0],
@@ -77,8 +69,25 @@ export const authConfig: NextAuthConfig = {
         },
 
         // Enrich the JWT token with our DB user ID and role
-        async jwt({ token }) {
-            // Always ensure userId is in the token — runs on first sign-in AND every refresh
+        async jwt({ token, user: nextAuthUser }) {
+            // 1. If it's the first time signing in (nextAuthUser is present)
+            if (nextAuthUser && nextAuthUser.email) {
+                try {
+                    await connectToDatabase();
+                    const dbUser = await User.findOne({ email: nextAuthUser.email.toLowerCase() });
+                    if (dbUser) {
+                        token.userId = dbUser._id.toString();
+                        token.role = dbUser.role;
+                        token.name = dbUser.name;
+                        token.phone = dbUser.phone;
+                        token.addresses = dbUser.addresses;
+                    }
+                } catch (err) {
+                    console.error('JWT initial sign-in error:', err);
+                }
+            }
+
+            // 2. Fallback for subsequent renders/refreshes if session is lost but token exists
             if (!token.userId && token.email) {
                 try {
                     await connectToDatabase();

@@ -67,6 +67,16 @@ export default function Header() {
         return () => window.removeEventListener('keydown', handleKey);
     }, [setIsCartOpen]);
 
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [mobileMenuOpen]);
+
     const filteredSuggestions = SEARCH_SUGGESTIONS.filter(s =>
         searchQuery ? s.toLowerCase().includes(searchQuery.toLowerCase()) : true
     );
@@ -76,16 +86,16 @@ export default function Header() {
             {/* ===== TOP UTILITY BAR ===== */}
             <div className="bg-gray-900 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 h-10 flex items-center justify-between text-xs sm:text-sm">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <span className="hidden sm:inline text-gray-300">Welcome to Covermatt</span>
-                        <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                        <span className="flex items-center gap-1 text-emerald-400 font-medium whitespace-nowrap">
                             <MapPin className="w-3.5 h-3.5" /> Nairobi
                         </span>
                     </div>
-                    <div className="flex items-center divide-x divide-gray-700">
+                    <div className="flex items-center divide-x divide-gray-700 shrink-0">
                         <Link href="/support/contact" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Store Locator</Link>
-                        <Link href="/support/track-order" className="px-3 py-1 text-amber-400 font-bold hover:text-amber-300 transition-colors flex items-center gap-1">
-                            <Truck className="w-3.5 h-3.5" /> Track Order
+                        <Link href="/support/track-order" className="px-3 py-1 text-amber-400 font-bold hover:text-amber-300 transition-colors flex items-center gap-1 whitespace-nowrap">
+                            <Truck className="w-3.5 h-3.5" /> <span className="hidden xs:inline">Track Order</span><span className="xs:hidden">Track</span>
                         </Link>
                         <Link href="/support/faqs" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Help & FAQs</Link>
                         <Link href="/login" className="px-3 py-1 text-gray-300 hover:text-emerald-400 transition-colors hidden md:block">Login / Register</Link>
@@ -111,7 +121,7 @@ export default function Header() {
                     </Link>
 
                     {/* Search Bar */}
-                    <div className="flex-1 relative" ref={searchRef}>
+                    <div className="flex-1 relative min-w-0" ref={searchRef}>
                         <div className={`flex items-center rounded-xl border-2 transition-all duration-200 ${searchFocused ? 'border-emerald-500 shadow-lg shadow-emerald-500/10 bg-white' : 'border-gray-200 bg-gray-50'}`}>
                             <select className="bg-transparent text-xs font-medium text-gray-500 pl-3 pr-1 py-3 border-r border-gray-200 outline-none cursor-pointer hidden md:block rounded-l-xl">
                                 <option>All</option>

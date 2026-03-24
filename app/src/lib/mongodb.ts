@@ -29,8 +29,16 @@ async function connectToDatabase() {
             // ── Attempt 1: X.509 certificate auth ──
             if (MONGODB_URI) {
                 try {
-                    const certPath = process.env.MONGODB_X509_CERT_PATH
-                        || path.resolve(process.cwd(), 'X509-cert-1795631679681400780.pem');
+                    const certFilename = 'X509-cert-1795631679681400780.pem';
+                    let certPath = process.env.MONGODB_X509_CERT_PATH
+                        || path.resolve(process.cwd(), certFilename);
+
+                    // Robust check: try current dir and one level up if not found
+                    const fs = require('fs');
+                    if (!fs.existsSync(certPath)) {
+                        const altPath = path.resolve(process.cwd(), 'app', certFilename);
+                        if (fs.existsSync(altPath)) certPath = altPath;
+                    }
 
                     const x509Opts: mongoose.ConnectOptions = {
                         bufferCommands: false,

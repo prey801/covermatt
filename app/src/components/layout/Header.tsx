@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import MiniCart from '@/components/cart/MiniCart';
+import { formatPrice } from '@/lib/utils';
 
 const NAV_CATEGORIES = [
     { icon: <Zap className="w-4 h-4" />, label: 'Power Tools', href: '/category/power-tools' },
@@ -191,7 +192,7 @@ export default function Header() {
                                         <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-emerald-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">{itemCount}</span>
                                     )}
                                 </div>
-                                <span className="text-[9px] text-gray-700 font-bold mt-0.5">KSh {total.toLocaleString()}</span>
+                                <span className="text-[9px] text-gray-700 font-bold mt-0.5">KSh {formatPrice(total)}</span>
                             </button>
                             {isCartOpen && <MiniCart />}
                         </div>

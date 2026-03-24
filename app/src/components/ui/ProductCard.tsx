@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Heart, Star, Eye, Zap, CheckCircle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { formatPrice } from '@/lib/utils';
 
 export interface Product {
     id: string;
@@ -132,14 +133,14 @@ export default function ProductCard({ product, size = 'default' }: ProductCardPr
 
                 {/* Price */}
                 <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-base sm:text-lg font-extrabold text-gray-900">KSh {product.price.toLocaleString()}</span>
+                    <span className="text-base sm:text-lg font-extrabold text-gray-900">KSh {formatPrice(product.price)}</span>
                     {product.originalPrice && (
-                        <span className="text-xs text-gray-400 line-through">KSh {product.originalPrice.toLocaleString()}</span>
+                        <span className="text-xs text-gray-400 line-through">KSh {formatPrice(product.originalPrice)}</span>
                     )}
                 </div>
                 {product.originalPrice && (
                     <p className="text-[11px] text-emerald-600 font-semibold mb-3">
-                        Save KSh {(product.originalPrice - product.price).toLocaleString()}
+                        Save KSh {formatPrice(product.originalPrice - product.price)}
                     </p>
                 )}
 

@@ -3,6 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { X, Minus, Plus, ShoppingBag, ArrowRight, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { formatPrice } from '@/lib/utils';
 
 export default function MiniCart() {
     const { items, removeItem, updateQuantity, total, itemCount, setIsCartOpen } = useCart();
@@ -41,7 +42,7 @@ export default function MiniCart() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs font-semibold text-gray-900 line-clamp-1 mb-0.5">{item.name}</p>
-                                    <p className="text-xs font-bold text-emerald-600">KSh {(item.price * item.quantity).toLocaleString()}</p>
+                                    <p className="text-xs font-bold text-emerald-600">KSh {formatPrice(item.price * item.quantity)}</p>
                                     <div className="flex items-center justify-between mt-2">
                                         <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                                             <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center hover:bg-gray-100 transition-colors">
@@ -65,7 +66,7 @@ export default function MiniCart() {
                     <div className="border-t border-gray-100 px-5 py-4">
                         <div className="flex justify-between mb-4">
                             <span className="text-sm text-gray-500">Subtotal</span>
-                            <span className="text-base font-extrabold text-gray-900">KSh {total.toLocaleString()}</span>
+                            <span className="text-base font-extrabold text-gray-900">KSh {formatPrice(total)}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <Link href="/cart" onClick={() => setIsCartOpen(false)} className="block text-center border-2 border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-sm hover:border-emerald-500 hover:text-emerald-600 transition-colors">

@@ -152,7 +152,7 @@ export default function Footer() {
             <div className="bg-black/30 border-t border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
-                        <p>&copy; {new Date().getFullYear()} Covermatt Hardware & Electricals. All rights reserved.</p>
+                        <p suppressHydrationWarning>&copy; {new Date().getFullYear()} Covermatt Hardware & Electricals. All rights reserved.</p>
                         <div className="flex gap-4">
                             <Link href="/terms" className="hover:text-emerald-400 transition-colors">Terms</Link>
                             <Link href="/privacy" className="hover:text-emerald-400 transition-colors">Privacy</Link>

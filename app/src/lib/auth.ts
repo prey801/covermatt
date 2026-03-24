@@ -26,7 +26,8 @@ export const authConfig: NextAuthConfig = {
 
     callbacks: {
         // Runs after Google successfully authenticates the user
-        async signIn({ user, account }) {
+        async signIn({ user, account, profile }) {
+            console.log('🔑 signIn callback started', { provider: account?.provider, email: user.email });
             if (account?.provider !== 'google' && account?.provider !== 'facebook') return true;
 
             try {
@@ -63,15 +64,22 @@ export const authConfig: NextAuthConfig = {
                     );
                 }
 
+                console.log('✅ signIn callback successful');
                 return true;
-            } catch (err) {
-                console.error('NextAuth signIn callback error:', err);
+            } catch (err: any) {
+                console.error('❌ NextAuth signIn callback error:', {
+                    provider: account?.provider,
+                    email: user.email,
+                    error: err.message,
+                    stack: err.stack
+                });
                 return false;
             }
         },
 
         // Enrich the JWT token with our DB user ID and role
-        async jwt({ token, user: nextAuthUser }) {
+        async jwt({ token, user: nextAuthUser, account }) {
+            console.log('🎫 jwt callback started', { hasUser: !!nextAuthUser, email: token.email });
             // 1. If it's the first time signing in (nextAuthUser is present)
             if (nextAuthUser && nextAuthUser.email) {
                 try {
@@ -103,6 +111,7 @@ export const authConfig: NextAuthConfig = {
                     }
                 } catch { /* non-fatal */ }
             }
+            console.log('🎫 jwt callback finished', { userId: token.userId });
             return token;
         },
 

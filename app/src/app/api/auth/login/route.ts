@@ -35,7 +35,7 @@ export async function POST(request: Request) {
                 secure: process.env.NODE_ENV === 'production',
                 sameSite: 'strict',
                 path: '/',
-                maxAge: remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 // 30 days or 24 hours
+                maxAge: remember ? 60 * 60 * 24 * 3 : 60 * 60 * 24 // 3 days or 24 hours
             });
             return response;
         }
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             path: '/',
-            maxAge: remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 // 30 days or 24 hours
+            maxAge: remember ? 60 * 60 * 24 * 3 : 60 * 60 * 24 // 3 days or 24 hours
         });
         return response;
 
